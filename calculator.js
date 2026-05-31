@@ -5,9 +5,8 @@
     root.ExploitCalculator = factory();
   }
 })(typeof self !== "undefined" ? self : this, function () {
-  const RETAIN_DAYS = 28;
   const UNKNOWN_PLAYER = "\uC54C \uC218 \uC5C6\uC74C";
-  const BACKUP_VERSION = 3;
+  const BACKUP_VERSION = 4;
   const ROW_COLUMNS = ["date", "player", "purpose", "amount"];
 
   function normalizeNumber(raw) {
@@ -157,17 +156,21 @@
       rowCount: 0,
       firstDate: "",
       latestDate: "",
+      hasUnknownDate: false,
     };
   }
 
   function updateSummaryDates(summary, date) {
     const normalized = normalizeDate(date);
     const time = dateToTime(normalized);
-    if (time === null) return;
+    if (time === null) {
+      summary.hasUnknownDate = true;
+      return;
+    }
 
     const firstTime = dateToTime(summary.firstDate);
     const latestTimeValue = dateToTime(summary.latestDate);
-    if (!summary.firstDate || firstTime === null || time < firstTime) {
+    if (!summary.hasUnknownDate && (!summary.firstDate || firstTime === null || time < firstTime)) {
       summary.firstDate = normalized;
     }
     if (!summary.latestDate || latestTimeValue === null || time > latestTimeValue) {
@@ -199,14 +202,18 @@
 
   function normalizeSummary(summary) {
     const player = String(summary.player || UNKNOWN_PLAYER).trim() || UNKNOWN_PLAYER;
+    const rowCount = Number(summary.rowCount) || 0;
+    const firstDate = normalizeDate(summary.firstDate);
+    const latestDate = normalizeDate(summary.latestDate);
     return {
       player,
       total: Number(summary.total) || 0,
       depositTotal: Number(summary.depositTotal) || 0,
       withdrawTotal: Number(summary.withdrawTotal) || 0,
-      rowCount: Number(summary.rowCount) || 0,
-      firstDate: normalizeDate(summary.firstDate),
-      latestDate: normalizeDate(summary.latestDate),
+      rowCount,
+      firstDate,
+      latestDate,
+      hasUnknownDate: Boolean(summary.hasUnknownDate) || (rowCount > 0 && (!firstDate || !latestDate)),
     };
   }
 
@@ -268,7 +275,10 @@
   }
 
   function createLedger(rows = [], summaries = []) {
-    return compressLedger({ rows: sanitizeRows(rows), summaries: summaries.map(normalizeSummary) });
+    return {
+      rows: [],
+      summaries: summarizeRows(sanitizeRows(rows), summaries).players,
+    };
   }
 
   function importLedger(data) {
@@ -278,7 +288,7 @@
       return createLedger(sanitizeRows(data));
     }
 
-    if (data.version === BACKUP_VERSION && data.ledger) {
+    if (data.ledger) {
       return createLedger(data.ledger.rows, data.ledger.summaries);
     }
 
@@ -289,47 +299,8 @@
     return createLedger();
   }
 
-  function latestTime(rows) {
-    return sanitizeRows(rows).reduce((latest, row) => {
-      const time = dateToTime(row.date);
-      return time === null ? latest : Math.max(latest, time);
-    }, Number.NEGATIVE_INFINITY);
-  }
-
-  function cutoffFromRows(rows) {
-    const latest = latestTime(rows);
-    if (!Number.isFinite(latest)) return null;
-    return latest - RETAIN_DAYS * 24 * 60 * 60 * 1000;
-  }
-
   function compressLedger(ledger) {
-    const rows = sanitizeRows(ledger.rows);
-    const cutoff = cutoffFromRows(rows);
-    if (cutoff === null) {
-      return { rows, summaries: (ledger.summaries || []).map(normalizeSummary) };
-    }
-
-    const playerMap = new Map();
-    (ledger.summaries || []).map(normalizeSummary).forEach((summary) => {
-      playerMap.set(summary.player, { ...summary });
-    });
-
-    const recentRows = [];
-    rows.forEach((row) => {
-      const time = dateToTime(row.date);
-      if (time !== null && time < cutoff) {
-        addRowToPlayerMap(playerMap, row);
-      } else {
-        recentRows.push(row);
-      }
-    });
-
-    return {
-      rows: recentRows,
-      summaries: Array.from(playerMap.values()).sort((a, b) =>
-        a.player.localeCompare(b.player, "ko-KR"),
-      ),
-    };
+    return createLedger(ledger.rows, ledger.summaries);
   }
 
   function summarizeLedger(ledger) {
@@ -340,26 +311,33 @@
   function mergeLedger(existingLedger, input) {
     const ledger = importLedger(existingLedger);
     const parsed = parseRows(input);
-    const rowMap = new Map();
+    const playerMap = new Map();
 
-    ledger.rows.forEach((row) => rowMap.set(row.key, row));
+    ledger.summaries.map(normalizeSummary).forEach((summary) => {
+      playerMap.set(summary.player, { ...summary });
+    });
 
     let addedCount = 0;
     let duplicateCount = 0;
-    parsed.rows.forEach((row) => {
-      if (rowMap.has(row.key)) {
+    sortRowsByDate(parsed.rows).forEach((row) => {
+      const player = row.player || UNKNOWN_PLAYER;
+      const summary = playerMap.get(player);
+      if (summary && isDuplicateByLatestDate(summary, row)) {
         duplicateCount += 1;
         return;
       }
-      rowMap.set(row.key, row);
+
+      if (!summary) {
+        playerMap.set(player, createPlayerSummary(player));
+      }
+      addRowToPlayerMap(playerMap, row);
       addedCount += 1;
     });
 
-    const rows = Array.from(rowMap.values()).sort((a, b) => {
-      const dateCompare = String(b.date).localeCompare(String(a.date), "ko-KR");
-      return dateCompare || a.player.localeCompare(b.player, "ko-KR");
-    });
-    const compressed = compressLedger({ rows, summaries: ledger.summaries });
+    const compressed = {
+      rows: [],
+      summaries: sortedSummaries(playerMap),
+    };
 
     return {
       ...summarizeLedger(compressed),
@@ -389,22 +367,48 @@
     );
   }
 
+  function isDuplicateByLatestDate(summary, row) {
+    const rowTime = dateToTime(row.date);
+    const latest = dateToTime(summary.latestDate);
+    return rowTime !== null && latest !== null && rowTime <= latest;
+  }
+
+  function sortRowsByDate(rows) {
+    return sanitizeRows(rows).sort((a, b) => {
+      const aTime = dateToTime(a.date);
+      const bTime = dateToTime(b.date);
+      if (aTime !== null && bTime !== null) {
+        return aTime - bTime || a.player.localeCompare(b.player, "ko-KR");
+      }
+      if (aTime !== null) return -1;
+      if (bTime !== null) return 1;
+      return String(a.date).localeCompare(String(b.date), "ko-KR");
+    });
+  }
+
+  function sortedSummaries(playerMap) {
+    return Array.from(playerMap.values()).sort((a, b) =>
+      a.player.localeCompare(b.player, "ko-KR"),
+    );
+  }
+
   function exportBackup(ledgerOrRows) {
     const ledger = importLedger(Array.isArray(ledgerOrRows) ? { rows: ledgerOrRows } : ledgerOrRows);
     return {
       version: BACKUP_VERSION,
-      format: "summary-plus-recent-rows",
-      retainDays: RETAIN_DAYS,
+      format: "summary-only-latest-date-watermark",
+      duplicatePolicy: "player-latest-date-watermark",
       columns: ROW_COLUMNS,
       ledger: {
         summaries: ledger.summaries,
-        rows: compactRows(ledger.rows),
+        rows: [],
       },
     };
   }
 
   function importBackup(backup) {
-    return importLedger(backup).rows;
+    const ledger = importLedger(backup);
+    return [...ledger.rows, ...summaryRowsForCompatibility(ledger.summaries)];
   }
 
   function sortPlayers(players, sortMode) {
@@ -423,7 +427,6 @@
   }
 
   return {
-    RETAIN_DAYS,
     BACKUP_VERSION,
     calculate,
     compactRows,

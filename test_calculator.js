@@ -6,10 +6,12 @@ const {
   createLedger,
   exportBackup,
   extractAmount,
+  importBackup,
   importLedger,
   mergeLedger,
   mergeRows,
   parseRow,
+  parseRows,
   splitTsv,
   summarizeLedger,
 } = require("./calculator");
@@ -104,39 +106,54 @@ assert.equal(secondMergeAlice.latestDate, "2026-06-01 01:01:01");
 const duplicateMerge = mergeLedger(createLedger(), sampleText);
 const duplicateMergeAgain = mergeLedger(duplicateMerge.ledger, sampleText);
 assert.equal(duplicateMergeAgain.addedCount, 0);
-assert.equal(duplicateMergeAgain.duplicateCount, duplicateMerge.rows.length);
+assert.equal(duplicateMergeAgain.duplicateCount, result.rowCount);
 assert.equal(duplicateMergeAgain.total, result.total);
+assert.equal(duplicateMerge.ledger.rows.length, 0);
 
 const backup = exportBackup(duplicateMerge.ledger);
 assert.equal(backup.version, BACKUP_VERSION);
-assert.equal(backup.format, "summary-plus-recent-rows");
-assert.equal(backup.ledger.rows[0].length, 4);
+assert.equal(backup.format, "summary-only-latest-date-watermark");
+assert.equal(backup.duplicatePolicy, "player-latest-date-watermark");
+assert.equal(backup.ledger.rows.length, 0);
+assert.equal(backup.ledger.summaries.length, result.playerCount);
 
 const restoredLedger = importLedger(backup);
 const restoredResult = summarizeLedger(restoredLedger);
 assert.equal(restoredResult.total, result.total);
 assert.equal(restoredResult.rowCount, result.rowCount);
 assert.equal(restoredResult.playerCount, result.playerCount);
+assert.equal(importBackup(backup).length, result.playerCount);
 
 const legacyRows = mergeRows([], sampleText).rows;
 const legacyLedger = importLedger(legacyRows);
 assert.equal(summarizeLedger(legacyLedger).total, result.total);
 assert.equal(compactRows(legacyLedger.rows).length, legacyLedger.rows.length);
 
+const sampleRows = parseRows(sampleText).rows;
 const fullCompactBackup = {
   version: 2,
   format: "compact-row-array",
   columns: ["date", "player", "purpose", "amount"],
-  rows: compactRows(legacyRows),
+  rows: compactRows(sampleRows),
 };
 const v2Restored = summarizeLedger(importLedger(fullCompactBackup));
 assert.equal(v2Restored.total, result.total);
 assert.equal(v2Restored.rowCount, result.rowCount);
 
-const fullJsonSize = JSON.stringify(legacyRows).length;
+const fullJsonSize = JSON.stringify(sampleRows).length;
 const compactJsonSize = JSON.stringify(fullCompactBackup).length;
-const compressedJsonSize = JSON.stringify(backup).length;
 assert.ok(compactJsonSize < fullJsonSize * 0.65);
+
+const manyRowsText = [
+  HEADER,
+  ...Array.from({ length: 60 }, (_, index) => {
+    const day = String((index % 30) + 1).padStart(2, "0");
+    const hour = String(index % 24).padStart(2, "0");
+    return `"2026-05-${day} ${hour}:00:00"\t"Alice"\t"${DEPOSIT}"\t"1"`;
+  }),
+].join("\n");
+const manyRowsBackup = exportBackup(mergeLedger(createLedger(), manyRowsText).ledger);
+assert.ok(JSON.stringify(manyRowsBackup).length < JSON.stringify(parseRows(manyRowsText).rows).length * 0.5);
 
 const longRangeWindow = [
   HEADER,
@@ -147,24 +164,47 @@ const longRangeWindow = [
 ].join("\n");
 const longRangeMerge = mergeLedger(createLedger(), longRangeWindow);
 assert.equal(longRangeMerge.total, 75);
-assert.equal(longRangeMerge.rows.length, 1);
+assert.equal(longRangeMerge.rows.length, 0);
 assert.equal(longRangeMerge.summaries.length, 2);
 const longRangeAlice = findPlayer(longRangeMerge, "Alice");
 assert.equal(longRangeAlice.firstDate, "2026-01-01 00:00:00");
 assert.equal(longRangeAlice.latestDate, "2026-05-31 00:00:00");
 const compressedAlice = findCompressedSummary(longRangeMerge, "Alice");
 assert.equal(compressedAlice.firstDate, "2026-01-01 00:00:00");
-assert.equal(compressedAlice.latestDate, "2026-01-02 00:00:00");
+assert.equal(compressedAlice.latestDate, "2026-05-31 00:00:00");
 
 const longRangeBackup = exportBackup(longRangeMerge.ledger);
 const longRangeRestored = summarizeLedger(importLedger(longRangeBackup));
 assert.equal(longRangeRestored.total, 75);
 assert.equal(longRangeRestored.rowCount, 4);
-assert.equal(longRangeBackup.ledger.rows.length, 1);
+assert.equal(longRangeBackup.ledger.rows.length, 0);
 assert.equal(longRangeBackup.ledger.summaries.length, 2);
 const longRangeRestoredAlice = findPlayer(longRangeRestored, "Alice");
 assert.equal(longRangeRestoredAlice.firstDate, "2026-01-01 00:00:00");
 assert.equal(longRangeRestoredAlice.latestDate, "2026-05-31 00:00:00");
+
+const overlappingWindow = [
+  HEADER,
+  `"2026-05-31 05:51:06"\t"Alice"\t"${DEPOSIT}"\t"10"`,
+  `"2026-05-31 06:00:00"\t"Alice"\t"${DEPOSIT}"\t"20"`,
+].join("\n");
+const overlappingMerge = mergeLedger(duplicateMerge.ledger, overlappingWindow);
+assert.equal(overlappingMerge.addedCount, 1);
+assert.equal(overlappingMerge.duplicateCount, 1);
+assert.equal(findPlayer(overlappingMerge, "Alice").latestDate, "2026-05-31 06:00:00");
+
+const dateUnknownLedger = createLedger([], [
+  { player: "Alice", total: 100, depositTotal: 100, withdrawTotal: 0, rowCount: 1 },
+]);
+const dateUnknownMerge = mergeLedger(
+  dateUnknownLedger,
+  [HEADER, `"2026-06-01 00:00:00"\t"Alice"\t"${DEPOSIT}"\t"20"`].join("\n"),
+);
+const dateUnknownAlice = findPlayer(dateUnknownMerge, "Alice");
+assert.equal(dateUnknownAlice.total, 120);
+assert.equal(dateUnknownAlice.firstDate, "");
+assert.equal(dateUnknownAlice.latestDate, "2026-06-01 00:00:00");
+assert.equal(dateUnknownAlice.hasUnknownDate, true);
 
 console.log(
   `OK: sample ${result.rowCount} rows, ${result.playerCount} players, total ${result.total}`,
