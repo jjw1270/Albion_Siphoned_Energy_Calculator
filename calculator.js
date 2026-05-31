@@ -8,6 +8,7 @@
   const UNKNOWN_PLAYER = "\uC54C \uC218 \uC5C6\uC74C";
   const BACKUP_VERSION = 4;
   const ROW_COLUMNS = ["date", "player", "purpose", "amount"];
+  const ENGLISH_STACKED_HEADER = ["date", "player", "reason", "amount"];
 
   function normalizeNumber(raw) {
     return Number(String(raw).replace(/,/g, "").trim());
@@ -70,6 +71,55 @@
     return fields.length >= 4 && Number.isNaN(normalizeNumber(fields[fields.length - 1]));
   }
 
+  function normalizeLanguage(options) {
+    if (typeof options === "string") return options;
+    return options && options.language ? String(options.language) : "ko";
+  }
+
+  function isEnglishStackedHeader(records, startIndex = 0) {
+    if (records.length - startIndex < ENGLISH_STACKED_HEADER.length) return false;
+
+    return ENGLISH_STACKED_HEADER.every(
+      (label, offset) => unquote(records[startIndex + offset].text).toLowerCase() === label,
+    );
+  }
+
+  function englishStackedInvalidGroup(group) {
+    return {
+      lineNumber: group[0].lineNumber,
+      text: group.map((item) => item.text).join("\n"),
+    };
+  }
+
+  function parseEnglishStackedRows(records) {
+    const result = { rows: [], skippedCount: 0, invalidLines: [] };
+    let index = 0;
+
+    if (isEnglishStackedHeader(records)) {
+      index = ENGLISH_STACKED_HEADER.length;
+      result.skippedCount = 1;
+    }
+
+    while (index < records.length) {
+      const group = records.slice(index, index + ENGLISH_STACKED_HEADER.length);
+      if (group.length < ENGLISH_STACKED_HEADER.length) {
+        result.invalidLines.push(englishStackedInvalidGroup(group));
+        break;
+      }
+
+      const fields = group.map((item) => unquote(item.text));
+      const amount = normalizeNumber(fields[3]);
+      if (Number.isNaN(amount)) {
+        result.invalidLines.push(englishStackedInvalidGroup(group));
+      } else {
+        result.rows.push(makeRow({ date: fields[0], player: fields[1], purpose: fields[2], amount }));
+      }
+      index += ENGLISH_STACKED_HEADER.length;
+    }
+
+    return result;
+  }
+
   function normalizeDate(raw) {
     return String(raw || "").trim();
   }
@@ -124,26 +174,33 @@
     });
   }
 
-  function parseRows(input) {
+  function parseRows(input, options = {}) {
     const result = { rows: [], skippedCount: 0, invalidLines: [] };
-    String(input || "")
+    const records = String(input || "")
       .replace(/^\uFEFF/, "")
       .split(/\r?\n/)
-      .forEach((line, index) => {
-        const trimmed = line.trim();
-        if (!trimmed) return;
-        if (isHeaderLine(trimmed)) {
-          result.skippedCount += 1;
-          return;
-        }
+      .map((line, index) => ({ lineNumber: index + 1, text: line.trim(), rawText: line }))
+      .filter((record) => record.text);
+    const language = normalizeLanguage(options);
 
-        const row = parseRow(trimmed);
-        if (row) {
-          result.rows.push(row);
-        } else {
-          result.invalidLines.push({ lineNumber: index + 1, text: line });
-        }
-      });
+    if (language === "en" || isEnglishStackedHeader(records)) {
+      return parseEnglishStackedRows(records);
+    }
+
+    records.forEach((record) => {
+      const trimmed = record.text;
+      if (isHeaderLine(trimmed)) {
+        result.skippedCount += 1;
+        return;
+      }
+
+      const row = parseRow(trimmed);
+      if (row) {
+        result.rows.push(row);
+      } else {
+        result.invalidLines.push({ lineNumber: record.lineNumber, text: record.rawText });
+      }
+    });
     return result;
   }
 
@@ -241,8 +298,8 @@
     );
   }
 
-  function calculate(input) {
-    const parsed = parseRows(input);
+  function calculate(input, options = {}) {
+    const parsed = parseRows(input, options);
     return { ...summarizeRows(parsed.rows), skippedCount: parsed.skippedCount, invalidLines: parsed.invalidLines };
   }
 
@@ -308,9 +365,9 @@
     return summarizeRows(normalized.rows, normalized.summaries);
   }
 
-  function mergeLedger(existingLedger, input) {
+  function mergeLedger(existingLedger, input, options = {}) {
     const ledger = importLedger(existingLedger);
-    const parsed = parseRows(input);
+    const parsed = parseRows(input, options);
     const playerMap = new Map();
 
     ledger.summaries.map(normalizeSummary).forEach((summary) => {
@@ -351,8 +408,8 @@
     };
   }
 
-  function mergeRows(existingRows, input) {
-    const merged = mergeLedger({ rows: existingRows, summaries: [] }, input);
+  function mergeRows(existingRows, input, options = {}) {
+    const merged = mergeLedger({ rows: existingRows, summaries: [] }, input, options);
     return { ...merged, rows: [...merged.rows, ...summaryRowsForCompatibility(merged.summaries)] };
   }
 
@@ -422,8 +479,8 @@
     return list.sort(sorters[sortMode] || sorters.totalAsc);
   }
 
-  function formatNumber(value) {
-    return new Intl.NumberFormat("ko-KR", { maximumFractionDigits: 6 }).format(value);
+  function formatNumber(value, locale = "ko-KR") {
+    return new Intl.NumberFormat(locale, { maximumFractionDigits: 6 }).format(value);
   }
 
   return {

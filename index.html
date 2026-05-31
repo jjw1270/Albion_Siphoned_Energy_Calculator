@@ -11,8 +11,13 @@
       main { max-width: 1120px; margin: 0 auto; padding: 32px 20px 48px; }
       h1 { margin: 0 0 8px; font-size: 32px; }
       .description { margin: 0 0 24px; color: #cbd5e1; line-height: 1.6; }
+      .client-note { margin: 0 0 8px; color: #93c5fd; font-weight: 700; }
       .page-header { margin-bottom: 24px; }
       .page-heading .description { margin-bottom: 0; }
+      .language-row { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+      .language-control { display: inline-flex; gap: 8px; align-items: center; color: #cbd5e1; font-size: 14px; font-weight: 700; }
+      .language-icon { display: inline-grid; place-items: center; width: 42px; min-height: 42px; border: 1px solid #334155; border-radius: 999px; background: #0f172a; font-size: 20px; line-height: 1; }
+      .language-control select { min-width: 128px; }
       .page-footer { margin-top: 28px; padding-top: 18px; border-top: 1px solid #334155; color: #94a3b8; }
       .footer-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
       .footer-actions .button-link { padding: 9px 13px; font-size: 13px; line-height: 1.2; }
@@ -21,9 +26,10 @@
       .license { margin: 0; font-size: 12px; line-height: 1.5; }
       .license a { color: #93c5fd; text-decoration: none; }
       .license a:hover, .license a:focus-visible { text-decoration: underline; }
-      textarea, input { box-sizing: border-box; border: 1px solid #334155; border-radius: 12px; background: #020617; color: #e5e7eb; }
+      textarea, input, select { box-sizing: border-box; border: 1px solid #334155; border-radius: 12px; background: #020617; color: #e5e7eb; }
       textarea { width: 100%; min-height: 260px; resize: vertical; padding: 16px; font: 15px/1.5 Consolas, "D2Coding", monospace; }
-      input { min-height: 42px; padding: 0 12px; }
+      input, select { min-height: 42px; padding: 0 12px; }
+      select { cursor: pointer; }
       .controls, .filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
       .controls { margin: 14px 0 18px; }
       .filters { margin: 18px 0 12px; }
@@ -59,8 +65,10 @@
       .guide-toggle { margin: 0 0 24px; border: 1px solid #334155; border-radius: 18px; overflow: hidden; background: #0f172a; }
       .guide-toggle summary { display: flex; flex-wrap: wrap; gap: 8px 12px; justify-content: space-between; align-items: center; padding: 16px 18px; cursor: pointer; list-style: none; }
       .guide-toggle summary::-webkit-details-marker { display: none; }
-      .guide-toggle summary::after { content: "펼치기"; border-radius: 999px; padding: 6px 12px; background: #334155; color: #e2e8f0; font-size: 13px; font-weight: 700; }
+      .guide-toggle summary::after { content: "펼치기"; min-width: 56px; border-radius: 999px; padding: 6px 12px; background: #334155; color: #e2e8f0; font-size: 13px; font-weight: 700; text-align: center; }
       .guide-toggle[open] summary::after { content: "접기"; }
+      html[lang="en"] .guide-toggle summary::after { content: "Show"; }
+      html[lang="en"] .guide-toggle[open] summary::after { content: "Hide"; }
       .guide-summary-title { font-weight: 800; }
       .guide-summary-hint { color: #94a3b8; font-size: 13px; }
       .guide-content { padding: 0 16px 16px; border-top: 1px solid #334155; }
@@ -68,7 +76,8 @@
       .guide-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
       .guide-step { display: flex; flex-direction: column; min-width: 0; border: 1px solid #334155; border-radius: 16px; overflow: hidden; background: #0f172a; }
       .guide-step-text { padding: 14px; }
-      .guide-grid .guide-step-text { box-sizing: border-box; min-height: 128px; }
+      .guide-grid .guide-step-text { box-sizing: border-box; min-height: 132px; }
+      .guide-final .guide-step-text { box-sizing: border-box; min-height: 92px; }
       .guide-step-title { margin: 0 0 6px; font-size: 17px; }
       .guide-step-description { margin: 0; color: #cbd5e1; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
       .guide-step img { display: block; flex: 1 1 auto; width: 100%; min-height: 240px; height: clamp(240px, 22vw, 280px); object-fit: contain; object-position: center top; background: #020617; border-top: 1px solid #334155; }
@@ -86,49 +95,59 @@
   <body>
     <main>
       <header class="page-header">
+        <div class="language-row">
+          <label class="language-control" for="languageSelect">
+            <span class="language-icon" id="languageLabel" aria-hidden="true" title="Language">🌐</span>
+            <select id="languageSelect" aria-label="Language">
+              <option value="ko">한국어</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+        </div>
         <div class="page-heading">
-          <h1>착취 계산기</h1>
-          <p class="description">여러 플레이어가 들어있는 txt 내용을 그대로 붙여넣고 <strong>누적에 반영</strong>을 누르세요. 플레이어별 최종합을 계산하고, 플레이어별 최근 기록일 이전 행은 중복 제외합니다.</p>
+          <h1 id="appTitle">착취 계산기</h1>
+          <p class="client-note" id="clientNote">한국어 클라이언트에서 복사한 기록으로 동작합니다.</p>
+          <p class="description" id="appDescription">여러 플레이어가 들어있는 txt 내용을 그대로 붙여넣고 <strong>누적에 반영</strong>을 누르세요. 플레이어별 최종합을 계산하고, 플레이어별 최근 기록일 이전 행은 중복 제외합니다.</p>
         </div>
       </header>
 
-      <details class="guide-toggle" aria-label="사용방법">
+      <details class="guide-toggle" id="guideToggle" aria-label="사용방법">
         <summary>
-          <span class="guide-summary-title">사용방법</span>
-          <span class="guide-summary-hint">처음 1회는 4주, 이후에는 24시간 기록을 복사하세요.</span>
+          <span class="guide-summary-title" id="guideSummaryTitle">사용방법</span>
+          <span class="guide-summary-hint" id="guideSummaryHint">처음 1회는 4주, 이후에는 24시간 기록을 복사하세요.</span>
         </summary>
         <div class="guide-content">
-          <p class="description">게임에서 길드 계좌 기록을 복사한 뒤, 아래 계산기에 붙여넣어 개인별 +/-를 확인합니다.</p>
+          <p class="description" id="guideDescription">게임에서 길드 계좌 기록을 복사한 뒤, 아래 계산기에 붙여넣어 개인별 +/-를 확인합니다.</p>
           <section class="guide-grid">
             <article class="guide-step">
               <div class="guide-step-text">
-                <h2 class="guide-step-title">1. 길드관리 탭</h2>
-                <p class="guide-step-description">길드 화면에서 <strong>길드관리</strong> 탭을 열고 <strong>길드 기록</strong> 버튼을 누릅니다.</p>
+                <h2 class="guide-step-title" id="guideStep1Title">1. 길드관리 탭</h2>
+                <p class="guide-step-description" id="guideStep1Description">길드 화면에서 <strong>길드관리</strong> 탭을 열고 <strong>길드 기록</strong> 버튼을 누릅니다.</p>
               </div>
-              <img class="zoomable" src="Images/1.png" alt="길드관리 탭에서 길드 기록 버튼 위치" />
+              <img class="zoomable" id="guideStep1Image" src="Images/ko/1.png" alt="길드관리 탭에서 길드 기록 버튼 위치" />
             </article>
             <article class="guide-step">
               <div class="guide-step-text">
-                <h2 class="guide-step-title">2. 필터 설정</h2>
-                <p class="guide-step-description">처음 누적할 때는 기간을 <strong>4주</strong>로 설정합니다. 이후부터는 중복 제외가 되므로 <strong>24시간</strong>으로 복사해도 됩니다.</p>
+                <h2 class="guide-step-title" id="guideStep2Title">2. 필터 설정</h2>
+                <p class="guide-step-description" id="guideStep2Description">처음 누적할 때는 기간을 <strong>4주</strong>로 설정합니다. 이후부터는 중복 제외가 되므로 <strong>24시간</strong>으로 복사해도 됩니다.</p>
               </div>
-              <img class="zoomable" src="Images/2.png" alt="길드 계좌 기록에서 착취한 에너지와 기간 필터 선택" />
+              <img class="zoomable" id="guideStep2Image" src="Images/ko/2.png" alt="길드 계좌 기록에서 착취한 에너지와 기간 필터 선택" />
             </article>
             <article class="guide-step">
               <div class="guide-step-text">
-                <h2 class="guide-step-title">3. 복사</h2>
-                <p class="guide-step-description"><strong>클립보드로 복사</strong> 버튼을 눌러 기록을 복사합니다.</p>
+                <h2 class="guide-step-title" id="guideStep3Title">3. 복사</h2>
+                <p class="guide-step-description" id="guideStep3Description"><strong>클립보드로 복사</strong> 버튼을 눌러 기록을 복사합니다.</p>
               </div>
-              <img class="zoomable" src="Images/3.png" alt="길드 계좌 기록 클립보드로 복사 버튼 위치" />
+              <img class="zoomable" id="guideStep3Image" src="Images/ko/3.png" alt="길드 계좌 기록 클립보드로 복사 버튼 위치" />
             </article>
           </section>
           <article class="guide-step guide-final">
             <div class="guide-step-text">
-              <h2 class="guide-step-title">4. 계산기에 붙여넣기</h2>
-              <p class="guide-step-description">복사한 내용을 아래 입력 칸에 붙여넣고 <strong>누적에 반영</strong>을 누릅니다. 이후 플레이어 검색창에서 이름을 선택하면 해당 플레이어의 +/-만 확인할 수 있습니다.</p>
+              <h2 class="guide-step-title" id="guideStep4Title">4. 계산기에 붙여넣기</h2>
+              <p class="guide-step-description" id="guideStep4Description">복사한 내용을 아래 입력 칸에 붙여넣고 <strong>누적에 반영</strong>을 누릅니다. 이후 플레이어 검색창에서 이름을 선택하면 해당 플레이어의 +/-만 확인할 수 있습니다.</p>
             </div>
           </article>
-          <div class="guide-note">처음에는 <strong>4주</strong> 기록을 한 번 누적하고, 이후에는 매일 또는 필요할 때 <strong>24시간</strong> 기록만 복사해 <strong>누적에 반영</strong>하세요.</div>
+          <div class="guide-note" id="guideNote">처음에는 <strong>4주</strong> 기록을 한 번 누적하고, 이후에는 매일 또는 필요할 때 <strong>24시간</strong> 기록만 복사해 <strong>누적에 반영</strong>하세요.</div>
         </div>
       </details>
 
@@ -137,15 +156,15 @@
 "날짜"	"플레이어"	"목적"	"수량"
 "2026-05-31 05:55:36"	"Alice"	"입금"	"50"
 "2026-05-31 05:52:56"	"Bob"	"출금"	"-10"'></textarea>
-        <p class="notice">입력한 기록은 서버로 전송되지 않고 이 브라우저에만 저장됩니다.</p>
+        <p class="notice" id="privacyNotice">입력한 기록은 서버로 전송되지 않고 이 브라우저에만 저장됩니다.</p>
         <div class="controls primary-controls">
           <button id="saveLedger" type="button">누적에 반영</button>
         </div>
         <section class="advanced" aria-label="백업/초기화">
-          <div class="advanced-title">백업/초기화</div>
+          <div class="advanced-title" id="advancedTitle">백업/초기화</div>
           <div class="controls">
             <button class="secondary" id="exportLedger" type="button">백업 다운로드</button>
-            <label class="file-label" for="importLedger">백업 불러오기</label>
+            <label class="file-label" id="importLedgerLabel" for="importLedger">백업 불러오기</label>
             <input id="importLedger" type="file" accept=".json,application/json" />
             <button class="secondary" id="resetLedger" type="button">누적 초기화</button>
           </div>
@@ -154,8 +173,8 @@
         <section class="panel">
           <div class="panel-header">
             <div>
-              <div class="panel-title">플레이어별 누적 합계</div>
-              <div class="hint">표는 브라우저에 저장된 누적 기록 기준입니다.</div>
+              <div class="panel-title" id="panelTitle">플레이어별 누적 합계</div>
+              <div class="hint" id="panelHint">표는 브라우저에 저장된 누적 기록 기준입니다.</div>
             </div>
             <div class="filters">
               <input id="playerSearch" type="search" list="playerSuggestions" placeholder="플레이어 검색" autocomplete="off" />
@@ -175,10 +194,10 @@
               <tr>
                 <th class="sortable" data-sort-key="player" id="playerHeader">플레이어 <span class="sort-mark"></span></th>
                 <th class="sortable" data-sort-key="total" id="totalHeader">최종합 <span class="sort-mark"></span></th>
-                <th>입금</th>
-                <th>출금</th>
-                <th>최근 기록일</th>
-                <th>최초 기록일</th>
+                <th id="depositHeader">입금</th>
+                <th id="withdrawHeader">출금</th>
+                <th id="latestDateHeader">최근 기록일</th>
+                <th id="firstDateHeader">최초 기록일</th>
               </tr>
             </thead>
             <tbody id="playerTableBody"><tr><td colspan="6">아직 누적 기록이 없습니다.</td></tr></tbody>
@@ -186,14 +205,14 @@
         </section>
       </section>
       <footer class="page-footer">
-        <p class="support-note">버그 제보 시 가능하면 백업 파일 또는 문제가 생긴 txt 예시를 함께 첨부해주세요.</p>
+        <p class="support-note" id="supportNote">버그 제보 시 가능하면 백업 파일 또는 문제가 생긴 txt 예시를 함께 첨부해주세요.</p>
         <nav class="footer-actions" aria-label="제보 및 요청">
           <a class="button-link secondary" id="bugReportLink" href="https://github.com/jjw1270/Albion_Siphoned_Energy_Calculator/issues/new?title=%5B%EB%B2%84%EA%B7%B8%5D%20" target="_blank" rel="noopener noreferrer">버그 제보</a>
           <a class="button-link secondary" id="featureRequestLink" href="https://github.com/jjw1270/Albion_Siphoned_Energy_Calculator/issues/new?title=%5B%EA%B8%B0%EB%8A%A5%20%EC%9A%94%EC%B2%AD%5D%20" target="_blank" rel="noopener noreferrer">기능 요청</a>
         </nav>
         <p class="license">
           MIT License · Copyright © 2026 Yunje Jang ·
-          <a href="LICENSE" target="_blank" rel="noopener noreferrer">라이선스 보기</a>
+          <a id="licenseLink" href="LICENSE" target="_blank" rel="noopener noreferrer">라이선스 보기</a>
         </p>
       </footer>
     </main>
@@ -207,27 +226,189 @@
       const legacyStorageKey = "exploit-calculator-ledger-v1";
       const lastPlayerCookieName = "exploit-calculator-last-player";
       const lastPlayerStorageKey = "exploit-calculator-last-player";
+      const languageStorageKey = "exploit-calculator-language";
       const issueBaseUrl = "https://github.com/jjw1270/Albion_Siphoned_Energy_Calculator/issues/new";
-      const bugReportTemplate = [
-        "## 문제 내용",
-        "",
-        "",
-        "## 재현 방법",
-        "어떻게 하면 문제가 다시 생기는지 간단히 적어주세요.",
-        "",
-        "## 스크린샷 또는 txt 예시",
-        "가능하면 첨부해주세요. 닉네임은 가려도 됩니다.",
-      ].join("\n");
-      const featureRequestTemplate = [
-        "## 원하는 기능",
-        "",
-        "",
-        "## 있으면 좋은 이유",
-        "간단히 적어주세요.",
-      ].join("\n");
       const playerTableColumnCount = 6;
+      const translations = {
+        ko: {
+          locale: "ko-KR",
+          title: "착취 계산기",
+          texts: {
+            appTitle: "착취 계산기",
+            clientNote: "한국어 클라이언트에서 복사한 기록으로 동작합니다.",
+            guideSummaryTitle: "사용방법",
+            guideSummaryHint: "처음 1회는 4주, 이후에는 24시간 기록을 복사하세요.",
+            guideStep1Title: "1. 길드관리 탭",
+            guideStep2Title: "2. 필터 설정",
+            guideStep3Title: "3. 복사",
+            guideStep4Title: "4. 계산기에 붙여넣기",
+            privacyNotice: "입력한 기록은 서버로 전송되지 않고 이 브라우저에만 저장됩니다.",
+            saveLedger: "누적에 반영",
+            advancedTitle: "백업/초기화",
+            exportLedger: "백업 다운로드",
+            importLedgerLabel: "백업 불러오기",
+            resetLedger: "누적 초기화",
+            panelTitle: "플레이어별 누적 합계",
+            panelHint: "표는 브라우저에 저장된 누적 기록 기준입니다.",
+            playerHeader: "플레이어",
+            totalHeader: "최종합",
+            depositHeader: "입금",
+            withdrawHeader: "출금",
+            latestDateHeader: "최근 기록일",
+            firstDateHeader: "최초 기록일",
+            supportNote: "버그 제보 시 가능하면 백업 파일 또는 문제가 생긴 txt 예시를 함께 첨부해주세요.",
+            bugReportLink: "버그 제보",
+            featureRequestLink: "기능 요청",
+            licenseLink: "라이선스 보기",
+            closeImageModal: "닫기",
+          },
+          html: {
+            appDescription: '여러 플레이어가 들어있는 txt 내용을 그대로 붙여넣고 <strong>누적에 반영</strong>을 누르세요. 플레이어별 최종합을 계산하고, 플레이어별 최근 기록일 이전 행은 중복 제외합니다.',
+            guideDescription: "게임에서 길드 계좌 기록을 복사한 뒤, 아래 계산기에 붙여넣어 개인별 +/-를 확인합니다.",
+            guideStep1Description: "길드 화면에서 <strong>길드관리</strong> 탭을 열고 <strong>길드 기록</strong> 버튼을 누릅니다.",
+            guideStep2Description: "기록 종류는 <strong>착취한 에너지</strong>, 기간은 처음 누적할 때 <strong>4주</strong>로 설정합니다. 이후부터는 중복 제외가 되므로 <strong>24시간</strong>으로 복사해도 됩니다.",
+            guideStep3Description: "<strong>클립보드로 복사</strong> 버튼을 눌러 기록을 복사합니다.",
+            guideStep4Description: "복사한 내용을 아래 입력 칸에 붙여넣고 <strong>누적에 반영</strong>을 누릅니다. 이후 플레이어 검색창에서 이름을 선택하면 해당 플레이어의 +/-만 확인할 수 있습니다.",
+            guideNote: "처음에는 <strong>4주</strong> 기록을 한 번 누적하고, 이후에는 매일 또는 필요할 때 <strong>24시간</strong> 기록만 복사해 <strong>누적에 반영</strong>하세요.",
+          },
+          attributes: {
+            guideToggle: { "aria-label": "사용방법" },
+            languageSelect: { "aria-label": "Language", title: "Language" },
+            input: {
+              placeholder: '예:\n"날짜"\t"플레이어"\t"목적"\t"수량"\n"2026-05-31 05:55:36"\t"Alice"\t"입금"\t"50"\n"2026-05-31 05:52:56"\t"Bob"\t"출금"\t"-10"',
+            },
+            playerSearch: { placeholder: "플레이어 검색" },
+            guideStep1Image: { src: "Images/ko/1.png", alt: "길드관리 탭에서 길드 기록 버튼 위치" },
+            guideStep2Image: { src: "Images/ko/2.png", alt: "길드 계좌 기록에서 착취한 에너지와 기간 필터 선택" },
+            guideStep3Image: { src: "Images/ko/3.png", alt: "길드 계좌 기록 클립보드로 복사 버튼 위치" },
+            imageModal: { "aria-label": "확대 이미지" },
+            closeImageModal: { "aria-label": "확대 이미지 닫기" },
+          },
+          messages: {
+            emptyTable: "아직 누적 기록이 없습니다.",
+            noPlayers: "표시할 플레이어가 없습니다.",
+            legacyAccumulated: "기존 누적",
+            invalidLines: "읽지 못한 줄이 있습니다.",
+            compatibility: "기존 누적 데이터가 현재 버전의 중복 처리 방식과 완전히 호환되지 않을 수 있습니다. 백업 다운로드 후 누적 초기화하고, 처음 1회는 4주 기록으로 다시 누적하는 것을 권장합니다.",
+            saveComplete: (addedCount, duplicateCount) => `반영 완료: 새 행 ${addedCount}개, 중복 제외 ${duplicateCount}개`,
+            backupImported: (rowCount) => `백업 ${rowCount}행을 불러왔습니다.`,
+            backupError: "백업 파일을 읽지 못했습니다. 착취 계산기에서 다운로드한 JSON 백업 파일인지 확인해주세요.",
+            resetConfirm: "브라우저에 저장된 누적 기록을 전부 지울까요?",
+            resetComplete: "누적 기록을 초기화했습니다.",
+            downloadName: (date) => `착취계산기-누적기록-${date}.json`,
+            bugTitle: "[버그] ",
+            featureTitle: "[기능 요청] ",
+          },
+          issueTemplates: {
+            bug: [
+              "## 문제 내용",
+              "",
+              "",
+              "## 재현 방법",
+              "문제를 재현하는 방법을 간단히 적어주세요.",
+              "",
+              "## 스크린샷 또는 txt 예시",
+              "가능하면 첨부해주세요. 플레이어 이름은 가려도 됩니다.",
+            ].join("\n"),
+            feature: ["## 요청 기능", "", "", "## 필요한 이유", "간단히 적어주세요."].join("\n"),
+          },
+        },
+        en: {
+          locale: "en-US",
+          title: "Siphoned Energy Calculator",
+          texts: {
+            appTitle: "Siphoned Energy Calculator",
+            clientNote: "Works with records copied from the English client.",
+            guideSummaryTitle: "How to use",
+            guideSummaryHint: "Copy 4 weeks for the first import, then 24 hours afterward.",
+            guideStep1Title: "1. Guild Management tab",
+            guideStep2Title: "2. Set filters",
+            guideStep3Title: "3. Copy",
+            guideStep4Title: "4. Paste into the calculator",
+            privacyNotice: "Your records are not sent to a server and are saved only in this browser.",
+            saveLedger: "Add to totals",
+            advancedTitle: "Backup / Reset",
+            exportLedger: "Download backup",
+            importLedgerLabel: "Import backup",
+            resetLedger: "Reset totals",
+            panelTitle: "Totals by player",
+            panelHint: "The table is based on accumulated records saved in this browser.",
+            playerHeader: "Player",
+            totalHeader: "Final total",
+            depositHeader: "Deposit",
+            withdrawHeader: "Withdrawal",
+            latestDateHeader: "Latest record",
+            firstDateHeader: "First record",
+            supportNote: "When reporting a bug, please attach a backup file or a sample txt if possible.",
+            bugReportLink: "Report bug",
+            featureRequestLink: "Request feature",
+            licenseLink: "View license",
+            closeImageModal: "Close",
+          },
+          html: {
+            appDescription: 'Paste the copied txt content containing multiple players, then click <strong>Add to totals</strong>. The calculator shows each player’s final total and excludes rows at or before that player’s latest saved record date.',
+            guideDescription: "Copy the guild account records from the game, paste them below, and check each player’s +/- total.",
+            guideStep1Description: "Open the <strong>Guild Management</strong> tab in the guild screen and click <strong>Guild Logs</strong>.",
+            guideStep2Description: "Set the record type to <strong>Siphoned Energy</strong> and use <strong>4 weeks</strong> for the first import. After that, duplicate filtering lets you copy only <strong>24 hours</strong>.",
+            guideStep3Description: "Click <strong>Copy to clipboard</strong> to copy the records.",
+            guideStep4Description: "Paste the copied content into the input box below and click <strong>Add to totals</strong>. You can then use player search to view only that player’s +/- total.",
+            guideNote: "First add one <strong>4-week</strong> record set. After that, add only <strong>24-hour</strong> records daily or whenever needed.",
+          },
+          attributes: {
+            guideToggle: { "aria-label": "How to use" },
+            languageSelect: { "aria-label": "Language", title: "Language" },
+            input: {
+              placeholder: 'Example:\n"Date"\t"Player"\t"Reason"\t"Amount"\n"2026-05-31 05:55:36"\t"Alice"\t"Deposit"\t"50"\n"2026-05-31 05:52:56"\t"Bob"\t"Withdrawal"\t"-10"',
+            },
+            playerSearch: { placeholder: "Search player" },
+            guideStep1Image: {
+              src: "Images/en/1.png",
+              alt: "Guild Logs button location in the Guild Management tab",
+            },
+            guideStep2Image: {
+              src: "Images/en/2.png",
+              alt: "Siphoned Energy and 4 weeks filter selection in guild account records",
+            },
+            guideStep3Image: {
+              src: "Images/en/3.png",
+              alt: "Copy to clipboard button location in guild account records",
+            },
+            imageModal: { "aria-label": "Zoomed image" },
+            closeImageModal: { "aria-label": "Close zoomed image" },
+          },
+          messages: {
+            emptyTable: "No accumulated records yet.",
+            noPlayers: "No players to display.",
+            legacyAccumulated: "Existing total",
+            invalidLines: "Some lines could not be read.",
+            compatibility: "Existing accumulated data may not be fully compatible with the current duplicate-handling method. We recommend downloading a backup, resetting totals, and importing 4 weeks of records once.",
+            saveComplete: (addedCount, duplicateCount) => `Updated: ${addedCount} new rows, ${duplicateCount} duplicates skipped`,
+            backupImported: (rowCount) => `Imported ${rowCount} backup rows.`,
+            backupError: "Could not read the backup file. Please check that it is a JSON backup downloaded from this calculator.",
+            resetConfirm: "Delete all accumulated records saved in this browser?",
+            resetComplete: "Accumulated records have been reset.",
+            downloadName: (date) => `siphoned-energy-calculator-ledger-${date}.json`,
+            bugTitle: "[Bug] ",
+            featureTitle: "[Feature request] ",
+          },
+          issueTemplates: {
+            bug: [
+              "## What happened",
+              "",
+              "",
+              "## Steps to reproduce",
+              "Briefly describe how to reproduce the issue.",
+              "",
+              "## Screenshot or txt sample",
+              "Please attach one if possible. You can hide player names.",
+            ].join("\n"),
+            feature: ["## Requested feature", "", "", "## Why it would help", "Briefly explain why."].join("\n"),
+          },
+        },
+      };
 
       const input = document.getElementById("input");
+      const languageSelect = document.getElementById("languageSelect");
       const warning = document.getElementById("warning");
       const playerSearch = document.getElementById("playerSearch");
       const playerSuggestions = document.getElementById("playerSuggestions");
@@ -244,13 +425,62 @@
       let statusType = "info";
       let sortState = { key: "total", direction: "asc" };
 
+      function currentLanguage() {
+        return translations[languageSelect.value] ? languageSelect.value : "ko";
+      }
+
+      function currentCopy() {
+        return translations[currentLanguage()];
+      }
+
+      function message(key, ...args) {
+        const value = currentCopy().messages[key];
+        return typeof value === "function" ? value(...args) : value;
+      }
+
+      function formatNumber(value) {
+        return ExploitCalculator.formatNumber(value, currentCopy().locale);
+      }
+
       function buildIssueUrl(title, body) {
         return `${issueBaseUrl}?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
       }
 
       function setupIssueLinks() {
-        bugReportLink.href = buildIssueUrl("[버그] ", bugReportTemplate);
-        featureRequestLink.href = buildIssueUrl("[기능 요청] ", featureRequestTemplate);
+        const copy = currentCopy();
+        bugReportLink.href = buildIssueUrl(copy.messages.bugTitle, copy.issueTemplates.bug);
+        featureRequestLink.href = buildIssueUrl(copy.messages.featureTitle, copy.issueTemplates.feature);
+      }
+
+      function setAttributes(id, attributes) {
+        const element = document.getElementById(id);
+        if (!element) return;
+        Object.entries(attributes).forEach(([name, value]) => {
+          element.setAttribute(name, value);
+        });
+      }
+
+      function applyLanguage(language) {
+        languageSelect.value = translations[language] ? language : "ko";
+        const copy = currentCopy();
+
+        document.documentElement.lang = currentLanguage();
+        document.title = copy.title;
+
+        Object.entries(copy.texts).forEach(([id, text]) => {
+          if (id === "playerHeader" || id === "totalHeader") return;
+          const element = document.getElementById(id);
+          if (element) element.textContent = text;
+        });
+        Object.entries(copy.html).forEach(([id, html]) => {
+          const element = document.getElementById(id);
+          if (element) element.innerHTML = html;
+        });
+        Object.entries(copy.attributes).forEach(([id, attributes]) => setAttributes(id, attributes));
+
+        document.getElementById("playerHeader").firstChild.textContent = `${copy.texts.playerHeader} `;
+        document.getElementById("totalHeader").firstChild.textContent = `${copy.texts.totalHeader} `;
+        setupIssueLinks();
       }
 
       function readStorage(key) {
@@ -335,7 +565,7 @@
         const date = String(value || "").trim();
         return date
           ? `<span class="date-cell">${escapeHtml(date)}</span>`
-          : '<span class="date-cell empty">기존 누적</span>';
+          : `<span class="date-cell empty">${escapeHtml(message("legacyAccumulated"))}</span>`;
       }
 
       function hasMissingSummaryDates(players) {
@@ -353,10 +583,10 @@
 
         return [...players].sort((a, b) => {
           if (sortState.key === "player") {
-            return a.player.localeCompare(b.player, "ko-KR") * direction;
+            return a.player.localeCompare(b.player, currentCopy().locale) * direction;
           }
 
-          return ((a.total - b.total) || a.player.localeCompare(b.player, "ko-KR")) * direction;
+          return ((a.total - b.total) || a.player.localeCompare(b.player, currentCopy().locale)) * direction;
         });
       }
 
@@ -378,8 +608,13 @@
 
         renderSortMarks();
 
+        if (players.length === 0) {
+          playerTableBody.innerHTML = `<tr><td colspan="${playerTableColumnCount}">${escapeHtml(message("emptyTable"))}</td></tr>`;
+          return;
+        }
+
         if (filtered.length === 0) {
-          playerTableBody.innerHTML = `<tr><td colspan="${playerTableColumnCount}">` + "\uD45C\uC2DC\uD560 \uD50C\uB808\uC774\uC5B4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4." + "</td></tr>";
+          playerTableBody.innerHTML = `<tr><td colspan="${playerTableColumnCount}">${escapeHtml(message("noPlayers"))}</td></tr>`;
           return;
         }
 
@@ -388,9 +623,9 @@
             (item) => `
               <tr>
                 <td>${escapeHtml(item.player)}</td>
-                <td class="${numberClass(item.total)}">${ExploitCalculator.formatNumber(item.total)}</td>
-                <td class="positive">${ExploitCalculator.formatNumber(item.depositTotal)}</td>
-                <td class="negative">${ExploitCalculator.formatNumber(item.withdrawTotal)}</td>
+                <td class="${numberClass(item.total)}">${formatNumber(item.total)}</td>
+                <td class="positive">${formatNumber(item.depositTotal)}</td>
+                <td class="negative">${formatNumber(item.withdrawTotal)}</td>
                 <td>${renderDateCell(item.latestDate)}</td>
                 <td>${renderDateCell(item.hasUnknownDate ? "" : item.firstDate)}</td>
               </tr>
@@ -410,7 +645,7 @@
 
         warning.style.display = "none";
         const compatibilityMessage = hasMissingDates
-          ? "기존 누적 데이터가 현재 버전의 중복 처리 방식과 완전히 호환되지 않을 수 있습니다. 백업 다운로드 후 누적 초기화하고, 처음 1회는 4주 기록으로 다시 누적하는 것을 권장합니다."
+          ? message("compatibility")
           : "";
         warning.textContent = [statusMessage, compatibilityMessage].filter(Boolean).join("\n");
 
@@ -423,7 +658,7 @@
       }
 
       function render(invalidLines = null) {
-        const currentResult = ExploitCalculator.calculate(input.value);
+        const currentResult = ExploitCalculator.calculate(input.value, { language: currentLanguage() });
         const ledgerResult = ExploitCalculator.summarizeLedger(loadLedger());
         const warningLines = invalidLines === null ? currentResult.invalidLines : invalidLines;
 
@@ -431,17 +666,17 @@
         renderPlayerTable(ledgerResult.players);
         showWarning(
           warningLines,
-          "\uC77D\uC9C0 \uBABB\uD55C \uC904\uC774 \uC788\uC2B5\uB2C8\uB2E4.",
+          message("invalidLines"),
           hasMissingSummaryDates(ledgerResult.players),
         );
       }
 
       document.getElementById("saveLedger").addEventListener("click", () => {
-        const merged = ExploitCalculator.mergeLedger(loadLedger(), input.value);
+        const merged = ExploitCalculator.mergeLedger(loadLedger(), input.value, { language: currentLanguage() });
         saveLedger(merged.ledger);
         input.value = "";
         statusType = "info";
-        statusMessage = `\uBC18\uC601 \uC644\uB8CC: \uC0C8 \uD589 ${ExploitCalculator.formatNumber(merged.addedCount)}\uAC1C, \uC911\uBCF5 \uC81C\uC678 ${ExploitCalculator.formatNumber(merged.duplicateCount)}\uAC1C`;
+        statusMessage = message("saveComplete", formatNumber(merged.addedCount), formatNumber(merged.duplicateCount));
         render(merged.invalidLines);
       });
 
@@ -452,7 +687,7 @@
         const anchor = document.createElement("a");
 
         anchor.href = url;
-        anchor.download = `\uCC29\uCDE8\uACC4\uC0B0\uAE30-\uB204\uC801\uAE30\uB85D-${new Date().toISOString().slice(0, 10)}.json`;
+        anchor.download = message("downloadName", new Date().toISOString().slice(0, 10));
         anchor.click();
         URL.revokeObjectURL(url);
       });
@@ -467,11 +702,11 @@
           const ledger = parseBackupFileContent(await file.text());
           saveLedger(ledger);
           statusType = "info";
-          statusMessage = `\uBC31\uC5C5 ${ExploitCalculator.formatNumber(ExploitCalculator.summarizeLedger(ledger).rowCount)}\uD589\uC744 \uBD88\uB7EC\uC654\uC2B5\uB2C8\uB2E4.`;
+          statusMessage = message("backupImported", formatNumber(ExploitCalculator.summarizeLedger(ledger).rowCount));
           render();
         } catch {
           statusType = "error";
-          statusMessage = "백업 파일을 읽지 못했습니다. 착취 계산기에서 다운로드한 JSON 백업 파일인지 확인해주세요.";
+          statusMessage = message("backupError");
           render();
         } finally {
           event.target.value = "";
@@ -479,13 +714,13 @@
       });
 
       document.getElementById("resetLedger").addEventListener("click", () => {
-        if (!confirm("\uBE0C\uB77C\uC6B0\uC800\uC5D0 \uC800\uC7A5\uB41C \uB204\uC801 \uAE30\uB85D\uC744 \uC804\uBD80 \uC9C0\uC6B8\uAE4C\uC694?")) {
+        if (!confirm(message("resetConfirm"))) {
           return;
         }
 
         saveLedger([]);
         statusType = "info";
-        statusMessage = "\uB204\uC801 \uAE30\uB85D\uC744 \uCD08\uAE30\uD654\uD588\uC2B5\uB2C8\uB2E4.";
+        statusMessage = message("resetComplete");
         render();
       });
 
@@ -503,6 +738,14 @@
 
       playerSearch.addEventListener("input", () => {
         saveLastPlayerSearch(playerSearch.value.trim());
+        render();
+      });
+
+      languageSelect.addEventListener("change", () => {
+        localStorage.setItem(languageStorageKey, currentLanguage());
+        statusType = "info";
+        statusMessage = "";
+        applyLanguage(currentLanguage());
         render();
       });
 
@@ -536,7 +779,7 @@
         }
       });
 
-      setupIssueLinks();
+      applyLanguage(localStorage.getItem(languageStorageKey) || "ko");
       playerSearch.value = loadLastPlayerSearch();
       render();
     </script>

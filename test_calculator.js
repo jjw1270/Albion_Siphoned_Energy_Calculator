@@ -32,6 +32,21 @@ function findCompressedSummary(ledgerResult, player) {
   return summary;
 }
 
+function englishStackedRows(rows) {
+  return [
+    '"Date"',
+    '"Player"',
+    '"Reason"',
+    '"Amount"',
+    ...rows.flatMap(([date, player, reason, amount]) => [
+      `"${date}"`,
+      `"${player}"`,
+      `"${reason}"`,
+      `"${amount}"`,
+    ]),
+  ].join("\n");
+}
+
 assert.deepEqual(splitTsv(HEADER), [
   "\uB0A0\uC9DC",
   "\uD50C\uB808\uC774\uC5B4",
@@ -75,6 +90,35 @@ assert.equal(alice.latestDate, "2026-05-31 05:55:36");
 const bob = findPlayer(result, "Bob");
 assert.equal(bob.firstDate, "2026-05-30 14:11:53");
 assert.equal(bob.latestDate, "2026-05-31 05:52:56");
+
+const englishStackedText = englishStackedRows([
+  ["2026-05-31 17:30:27", "nagarsaki", "Withdrawal", -10],
+  ["2026-05-31 08:32:04", "YunJee", "Deposit", 10],
+  ["2026-05-31 07:25:14", "JNPgood", "Deposit", 10],
+  ["2026-05-31 07:25:01", "JNPgood", "Withdrawal", -10],
+]);
+const englishResult = calculate(englishStackedText, { language: "en" });
+assert.equal(englishResult.total, 0);
+assert.equal(englishResult.rowCount, 4);
+assert.equal(englishResult.playerCount, 3);
+assert.equal(englishResult.skippedCount, 1);
+assert.equal(englishResult.invalidLines.length, 0);
+assert.equal(findPlayer(englishResult, "nagarsaki").withdrawTotal, -10);
+assert.equal(findPlayer(englishResult, "YunJee").depositTotal, 10);
+const englishJnp = findPlayer(englishResult, "JNPgood");
+assert.equal(englishJnp.total, 0);
+assert.equal(englishJnp.rowCount, 2);
+assert.equal(englishJnp.firstDate, "2026-05-31 07:25:01");
+assert.equal(englishJnp.latestDate, "2026-05-31 07:25:14");
+
+const autoDetectedEnglishResult = calculate(englishStackedText);
+assert.equal(autoDetectedEnglishResult.total, englishResult.total);
+assert.equal(autoDetectedEnglishResult.rowCount, englishResult.rowCount);
+
+const englishMerge = mergeLedger(createLedger(), englishStackedText, { language: "en" });
+assert.equal(englishMerge.addedCount, 4);
+assert.equal(englishMerge.duplicateCount, 0);
+assert.equal(englishMerge.invalidLines.length, 0);
 
 const firstWindow = [
   HEADER,
