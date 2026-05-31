@@ -149,10 +149,33 @@
   }
 
   function createPlayerSummary(player) {
-    return { player, total: 0, depositTotal: 0, withdrawTotal: 0, rowCount: 0 };
+    return {
+      player,
+      total: 0,
+      depositTotal: 0,
+      withdrawTotal: 0,
+      rowCount: 0,
+      firstDate: "",
+      latestDate: "",
+    };
   }
 
-  function addAmount(summary, amount) {
+  function updateSummaryDates(summary, date) {
+    const normalized = normalizeDate(date);
+    const time = dateToTime(normalized);
+    if (time === null) return;
+
+    const firstTime = dateToTime(summary.firstDate);
+    const latestTimeValue = dateToTime(summary.latestDate);
+    if (!summary.firstDate || firstTime === null || time < firstTime) {
+      summary.firstDate = normalized;
+    }
+    if (!summary.latestDate || latestTimeValue === null || time > latestTimeValue) {
+      summary.latestDate = normalized;
+    }
+  }
+
+  function addAmount(summary, amount, date) {
     summary.total += amount;
     if (amount >= 0) {
       summary.depositTotal += amount;
@@ -160,6 +183,7 @@
       summary.withdrawTotal += amount;
     }
     summary.rowCount += 1;
+    updateSummaryDates(summary, date);
   }
 
   function addRowToPlayerMap(playerMap, row) {
@@ -170,7 +194,7 @@
     if (!playerMap.has(player)) {
       playerMap.set(player, createPlayerSummary(player));
     }
-    addAmount(playerMap.get(player), amount);
+    addAmount(playerMap.get(player), amount, row.date);
   }
 
   function normalizeSummary(summary) {
@@ -181,6 +205,8 @@
       depositTotal: Number(summary.depositTotal) || 0,
       withdrawTotal: Number(summary.withdrawTotal) || 0,
       rowCount: Number(summary.rowCount) || 0,
+      firstDate: normalizeDate(summary.firstDate),
+      latestDate: normalizeDate(summary.latestDate),
     };
   }
 
@@ -354,7 +380,12 @@
 
   function summaryRowsForCompatibility(summaries) {
     return summaries.map((summary) =>
-      makeRow({ date: "", player: summary.player, purpose: "summary", amount: summary.total }),
+      makeRow({
+        date: summary.latestDate || summary.firstDate || "",
+        player: summary.player,
+        purpose: "summary",
+        amount: summary.total,
+      }),
     );
   }
 

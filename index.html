@@ -28,6 +28,7 @@
       .advanced { margin: -4px 0 20px; color: #cbd5e1; }
       .advanced summary { cursor: pointer; width: fit-content; color: #93c5fd; }
       .advanced .controls { margin-bottom: 0; }
+      .advanced button, .advanced .file-label { font: inherit; font-size: 14px; font-weight: 700; line-height: 1.2; }
       .panel { margin-top: 18px; border: 1px solid #334155; border-radius: 14px; overflow: hidden; background: #0f172a; }
       .panel-header { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid #334155; }
       .panel-title { font-weight: 800; }
@@ -42,6 +43,8 @@
       tbody tr:last-child td { border-bottom: 0; }
       .negative { color: #fca5a5; }
       .positive { color: #86efac; }
+      .date-cell { color: #cbd5e1; font-size: 12.5px; }
+      .date-cell.empty { color: #64748b; }
       .warning { display: none; margin-top: 16px; border: 1px solid #f97316; border-radius: 14px; padding: 14px; color: #fed7aa; background: rgba(154, 52, 18, 0.22); white-space: pre-wrap; }
       .warning.info { border-color: #38bdf8; color: #bae6fd; background: rgba(2, 132, 199, 0.16); }
       .guide-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
@@ -94,10 +97,12 @@
           </div>
           <table>
             <colgroup>
-              <col style="width: 34%" />
               <col style="width: 22%" />
-              <col style="width: 22%" />
-              <col style="width: 22%" />
+              <col style="width: 14%" />
+              <col style="width: 14%" />
+              <col style="width: 14%" />
+              <col style="width: 18%" />
+              <col style="width: 18%" />
             </colgroup>
             <thead>
               <tr>
@@ -105,9 +110,11 @@
                 <th class="sortable" data-sort-key="total" id="totalHeader">최종합 <span class="sort-mark"></span></th>
                 <th>입금</th>
                 <th>출금</th>
+                <th>최근 기록일</th>
+                <th>최초 기록일</th>
               </tr>
             </thead>
-            <tbody id="playerTableBody"><tr><td colspan="4">아직 누적 기록이 없습니다.</td></tr></tbody>
+            <tbody id="playerTableBody"><tr><td colspan="6">아직 누적 기록이 없습니다.</td></tr></tbody>
           </table>
         </section>
       </section>
@@ -152,6 +159,7 @@
       const legacyStorageKey = "exploit-calculator-ledger-v1";
       const lastPlayerCookieName = "exploit-calculator-last-player";
       const lastPlayerStorageKey = "exploit-calculator-last-player";
+      const playerTableColumnCount = 6;
 
       const input = document.getElementById("input");
       const warning = document.getElementById("warning");
@@ -213,9 +221,25 @@
         return value > 0 ? "positive" : value < 0 ? "negative" : "";
       }
 
+      function escapeHtml(value) {
+        return String(value || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function renderDateCell(value) {
+        const date = String(value || "").trim();
+        return date
+          ? `<span class="date-cell">${escapeHtml(date)}</span>`
+          : '<span class="date-cell empty">-</span>';
+      }
+
       function renderPlayerSuggestions(players) {
         playerSuggestions.innerHTML = players
-          .map((item) => `<option value="${item.player}"></option>`)
+          .map((item) => `<option value="${escapeHtml(item.player)}"></option>`)
           .join("");
       }
 
@@ -250,7 +274,7 @@
         renderSortMarks();
 
         if (filtered.length === 0) {
-          playerTableBody.innerHTML = '<tr><td colspan="4">' + "\uD45C\uC2DC\uD560 \uD50C\uB808\uC774\uC5B4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4." + "</td></tr>";
+          playerTableBody.innerHTML = `<tr><td colspan="${playerTableColumnCount}">` + "\uD45C\uC2DC\uD560 \uD50C\uB808\uC774\uC5B4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4." + "</td></tr>";
           return;
         }
 
@@ -258,10 +282,12 @@
           .map(
             (item) => `
               <tr>
-                <td>${item.player}</td>
+                <td>${escapeHtml(item.player)}</td>
                 <td class="${numberClass(item.total)}">${ExploitCalculator.formatNumber(item.total)}</td>
                 <td class="positive">${ExploitCalculator.formatNumber(item.depositTotal)}</td>
                 <td class="negative">${ExploitCalculator.formatNumber(item.withdrawTotal)}</td>
+                <td>${renderDateCell(item.latestDate)}</td>
+                <td>${renderDateCell(item.firstDate)}</td>
               </tr>
             `,
           )

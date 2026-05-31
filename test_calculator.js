@@ -18,6 +18,18 @@ const HEADER = '"\uB0A0\uC9DC"\t"\uD50C\uB808\uC774\uC5B4"\t"\uBAA9\uC801"\t"\uC
 const DEPOSIT = "\uC785\uAE08";
 const WITHDRAW = "\uCD9C\uAE08";
 
+function findPlayer(result, player) {
+  const summary = result.players.find((item) => item.player === player);
+  assert.ok(summary, `${player} aggregate should exist.`);
+  return summary;
+}
+
+function findCompressedSummary(ledgerResult, player) {
+  const summary = ledgerResult.summaries.find((item) => item.player === player);
+  assert.ok(summary, `${player} compressed summary should exist.`);
+  return summary;
+}
+
 assert.deepEqual(splitTsv(HEADER), [
   "\uB0A0\uC9DC",
   "\uD50C\uB808\uC774\uC5B4",
@@ -50,12 +62,17 @@ assert.equal(result.rowCount, 6);
 assert.equal(result.playerCount, 3);
 assert.equal(result.invalidLines.length, 0);
 
-const alice = result.players.find((item) => item.player === "Alice");
-assert.ok(alice, "Alice aggregate should exist.");
+const alice = findPlayer(result, "Alice");
 assert.equal(alice.total, 60);
 assert.equal(alice.depositTotal, 60);
 assert.equal(alice.withdrawTotal, 0);
 assert.equal(alice.rowCount, 2);
+assert.equal(alice.firstDate, "2026-05-31 05:51:06");
+assert.equal(alice.latestDate, "2026-05-31 05:55:36");
+
+const bob = findPlayer(result, "Bob");
+assert.equal(bob.firstDate, "2026-05-30 14:11:53");
+assert.equal(bob.latestDate, "2026-05-31 05:52:56");
 
 const firstWindow = [
   HEADER,
@@ -80,6 +97,9 @@ assert.equal(secondMerge.rowCount, 3);
 assert.equal(secondMerge.playerCount, 2);
 assert.equal(secondMerge.addedCount, 1);
 assert.equal(secondMerge.duplicateCount, 1);
+const secondMergeAlice = findPlayer(secondMerge, "Alice");
+assert.equal(secondMergeAlice.firstDate, "2026-05-01 01:01:01");
+assert.equal(secondMergeAlice.latestDate, "2026-06-01 01:01:01");
 
 const duplicateMerge = mergeLedger(createLedger(), sampleText);
 const duplicateMergeAgain = mergeLedger(duplicateMerge.ledger, sampleText);
@@ -129,6 +149,12 @@ const longRangeMerge = mergeLedger(createLedger(), longRangeWindow);
 assert.equal(longRangeMerge.total, 75);
 assert.equal(longRangeMerge.rows.length, 1);
 assert.equal(longRangeMerge.summaries.length, 2);
+const longRangeAlice = findPlayer(longRangeMerge, "Alice");
+assert.equal(longRangeAlice.firstDate, "2026-01-01 00:00:00");
+assert.equal(longRangeAlice.latestDate, "2026-05-31 00:00:00");
+const compressedAlice = findCompressedSummary(longRangeMerge, "Alice");
+assert.equal(compressedAlice.firstDate, "2026-01-01 00:00:00");
+assert.equal(compressedAlice.latestDate, "2026-01-02 00:00:00");
 
 const longRangeBackup = exportBackup(longRangeMerge.ledger);
 const longRangeRestored = summarizeLedger(importLedger(longRangeBackup));
@@ -136,6 +162,9 @@ assert.equal(longRangeRestored.total, 75);
 assert.equal(longRangeRestored.rowCount, 4);
 assert.equal(longRangeBackup.ledger.rows.length, 1);
 assert.equal(longRangeBackup.ledger.summaries.length, 2);
+const longRangeRestoredAlice = findPlayer(longRangeRestored, "Alice");
+assert.equal(longRangeRestoredAlice.firstDate, "2026-01-01 00:00:00");
+assert.equal(longRangeRestoredAlice.latestDate, "2026-05-31 00:00:00");
 
 console.log(
   `OK: sample ${result.rowCount} rows, ${result.playerCount} players, total ${result.total}`,
