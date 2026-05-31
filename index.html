@@ -11,10 +11,6 @@
       main { max-width: 1120px; margin: 0 auto; padding: 32px 20px 48px; }
       h1 { margin: 0 0 8px; font-size: 32px; }
       .description { margin: 0 0 24px; color: #cbd5e1; line-height: 1.6; }
-      .tabs { display: flex; gap: 8px; margin: 0 0 22px; }
-      .tab-button { background: #334155; color: #e2e8f0; }
-      .tab-button.active { background: #38bdf8; color: #082f49; }
-      .tab-panel[hidden] { display: none; }
       textarea, input { box-sizing: border-box; border: 1px solid #334155; border-radius: 12px; background: #020617; color: #e5e7eb; }
       textarea { width: 100%; min-height: 260px; resize: vertical; padding: 16px; font: 15px/1.5 Consolas, "D2Coding", monospace; }
       input { min-height: 42px; padding: 0 12px; }
@@ -47,6 +43,15 @@
       .date-cell.empty { color: #64748b; }
       .warning { display: none; margin-top: 16px; border: 1px solid #f97316; border-radius: 14px; padding: 14px; color: #fed7aa; background: rgba(154, 52, 18, 0.22); white-space: pre-wrap; }
       .warning.info { border-color: #38bdf8; color: #bae6fd; background: rgba(2, 132, 199, 0.16); }
+      .guide-toggle { margin: 0 0 24px; border: 1px solid #334155; border-radius: 18px; overflow: hidden; background: #0f172a; }
+      .guide-toggle summary { display: flex; flex-wrap: wrap; gap: 8px 12px; justify-content: space-between; align-items: center; padding: 16px 18px; cursor: pointer; list-style: none; }
+      .guide-toggle summary::-webkit-details-marker { display: none; }
+      .guide-toggle summary::after { content: "펼치기"; border-radius: 999px; padding: 6px 12px; background: #334155; color: #e2e8f0; font-size: 13px; font-weight: 700; }
+      .guide-toggle[open] summary::after { content: "접기"; }
+      .guide-summary-title { font-weight: 800; }
+      .guide-summary-hint { color: #94a3b8; font-size: 13px; }
+      .guide-content { padding: 0 16px 16px; border-top: 1px solid #334155; }
+      .guide-content .description { margin: 14px 0; }
       .guide-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
       .guide-step { border: 1px solid #334155; border-radius: 16px; overflow: hidden; background: #0f172a; }
       .guide-step-text { padding: 14px; }
@@ -67,13 +72,49 @@
   <body>
     <main>
       <h1>착취 계산기</h1>
-      <nav class="tabs" aria-label="화면 전환">
-        <button class="tab-button active" type="button" data-tab="calculator">계산기</button>
-        <button class="tab-button" type="button" data-tab="guide">사용방법</button>
-      </nav>
+      <p class="description">여러 플레이어가 들어있는 txt 내용을 그대로 붙여넣고 <strong>누적에 반영</strong>을 누르세요. 플레이어별 최종합을 계산하고, 플레이어별 최근 기록일 이전 행은 중복 제외합니다.</p>
 
-      <section class="tab-panel" id="calculatorPanel">
-        <p class="description">여러 플레이어가 들어있는 txt 내용을 그대로 붙여넣고 <strong>누적에 반영</strong>을 누르세요. 플레이어별 최종합을 계산하고, 플레이어별 최근 기록일 이전 행은 중복 제외합니다.</p>
+      <details class="guide-toggle" aria-label="사용방법">
+        <summary>
+          <span class="guide-summary-title">사용방법</span>
+          <span class="guide-summary-hint">처음 1회는 4주, 이후에는 24시간 기록을 복사하세요.</span>
+        </summary>
+        <div class="guide-content">
+          <p class="description">게임에서 길드 계좌 기록을 복사한 뒤, 아래 계산기에 붙여넣어 개인별 +/-를 확인합니다.</p>
+          <section class="guide-grid">
+            <article class="guide-step">
+              <div class="guide-step-text">
+                <h2 class="guide-step-title">1. 길드관리 탭</h2>
+                <p class="guide-step-description">길드 화면에서 <strong>길드관리</strong> 탭을 열고 <strong>길드 기록</strong> 버튼을 누릅니다.</p>
+              </div>
+              <img class="zoomable" src="Images/1.png" alt="길드관리 탭에서 길드 기록 버튼 위치" />
+            </article>
+            <article class="guide-step">
+              <div class="guide-step-text">
+                <h2 class="guide-step-title">2. 필터 설정</h2>
+                <p class="guide-step-description">처음 누적할 때는 기간을 <strong>4주</strong>로 설정합니다. 이후부터는 중복 제외가 되므로 <strong>24시간</strong>으로 복사해도 됩니다.</p>
+              </div>
+              <img class="zoomable" src="Images/2.png" alt="길드 계좌 기록에서 착취한 에너지와 기간 필터 선택" />
+            </article>
+            <article class="guide-step">
+              <div class="guide-step-text">
+                <h2 class="guide-step-title">3. 복사</h2>
+                <p class="guide-step-description"><strong>클립보드로 복사</strong> 버튼을 눌러 기록을 복사합니다.</p>
+              </div>
+              <img class="zoomable" src="Images/3.png" alt="길드 계좌 기록 클립보드로 복사 버튼 위치" />
+            </article>
+          </section>
+          <article class="guide-step guide-final">
+            <div class="guide-step-text">
+              <h2 class="guide-step-title">4. 계산기에 붙여넣기</h2>
+              <p class="guide-step-description">복사한 내용을 아래 입력 칸에 붙여넣고 <strong>누적에 반영</strong>을 누릅니다. 이후 플레이어 검색창에서 이름을 선택하면 해당 플레이어의 +/-만 확인할 수 있습니다.</p>
+            </div>
+          </article>
+          <div class="guide-note">처음에는 <strong>4주</strong> 기록을 한 번 누적하고, 이후에는 매일 또는 필요할 때 <strong>24시간</strong> 기록만 복사해 <strong>누적에 반영</strong>하세요.</div>
+        </div>
+      </details>
+
+      <section>
         <textarea id="input" spellcheck="false" placeholder='예:
 "날짜"	"플레이어"	"목적"	"수량"
 "2026-05-31 05:55:36"	"Alice"	"입금"	"50"
@@ -123,40 +164,6 @@
           </table>
         </section>
       </section>
-
-      <section class="tab-panel" id="guidePanel" hidden>
-        <p class="description">게임에서 길드 계좌 기록을 복사한 뒤, 계산기 화면에 붙여넣어 개인별 +/-를 확인합니다.</p>
-        <section class="guide-grid">
-          <article class="guide-step">
-            <div class="guide-step-text">
-              <h2 class="guide-step-title">1. 길드관리 탭</h2>
-              <p class="guide-step-description">길드 화면에서 <strong>길드관리</strong> 탭을 열고 <strong>길드 기록</strong> 버튼을 누릅니다.</p>
-            </div>
-            <img class="zoomable" src="Images/1.png" alt="길드관리 탭에서 길드 기록 버튼 위치" />
-          </article>
-          <article class="guide-step">
-            <div class="guide-step-text">
-              <h2 class="guide-step-title">2. 필터 설정</h2>
-              <p class="guide-step-description">처음 누적할 때는 기간을 <strong>4주</strong>로 설정합니다. 이후부터는 중복 제외가 되므로 <strong>24시간</strong>으로 복사해도 됩니다.</p>
-            </div>
-            <img class="zoomable" src="Images/2.png" alt="길드 계좌 기록에서 착취한 에너지와 기간 필터 선택" />
-          </article>
-          <article class="guide-step">
-            <div class="guide-step-text">
-              <h2 class="guide-step-title">3. 복사</h2>
-              <p class="guide-step-description"><strong>클립보드로 복사</strong> 버튼을 눌러 기록을 복사합니다.</p>
-            </div>
-            <img class="zoomable" src="Images/3.png" alt="길드 계좌 기록 클립보드로 복사 버튼 위치" />
-          </article>
-        </section>
-        <article class="guide-step guide-final">
-          <div class="guide-step-text">
-            <h2 class="guide-step-title">4. 계산기에 붙여넣기</h2>
-            <p class="guide-step-description">계산기 탭으로 돌아가 복사한 내용을 붙여넣고 <strong>누적에 반영</strong>을 누릅니다. 이후 플레이어 검색창에서 이름을 선택하면 해당 플레이어의 +/-만 확인할 수 있습니다.</p>
-          </div>
-        </article>
-        <div class="guide-note">처음에는 <strong>4주</strong> 기록을 한 번 누적하고, 이후에는 매일 또는 필요할 때 <strong>24시간</strong> 기록만 복사해 <strong>누적에 반영</strong>하세요.</div>
-      </section>
     </main>
     <div class="image-modal" id="imageModal" role="dialog" aria-modal="true" aria-label="확대 이미지" hidden>
       <button type="button" id="closeImageModal" aria-label="확대 이미지 닫기">닫기</button>
@@ -176,10 +183,7 @@
       const playerSuggestions = document.getElementById("playerSuggestions");
       const playerTableBody = document.getElementById("playerTableBody");
       const sortableHeaders = document.querySelectorAll("th.sortable");
-      const tabButtons = document.querySelectorAll(".tab-button");
       const zoomableImages = document.querySelectorAll("img.zoomable");
-      const calculatorPanel = document.getElementById("calculatorPanel");
-      const guidePanel = document.getElementById("guidePanel");
       const imageModal = document.getElementById("imageModal");
       const modalImage = document.getElementById("modalImage");
       const closeImageModal = document.getElementById("closeImageModal");
@@ -436,16 +440,6 @@
                 : "asc",
           };
           render();
-        });
-      });
-
-      tabButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-          const isGuide = button.dataset.tab === "guide";
-
-          calculatorPanel.hidden = isGuide;
-          guidePanel.hidden = !isGuide;
-          tabButtons.forEach((item) => item.classList.toggle("active", item === button));
         });
       });
 
