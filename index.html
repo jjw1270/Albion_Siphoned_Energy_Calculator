@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>착취 계산기</title>
+    <style>
+      :root { color-scheme: light dark; font-family: "Segoe UI", "Malgun Gothic", system-ui, sans-serif; scrollbar-gutter: stable; }
+      html { overflow-y: scroll; }
+      body { margin: 0; background: #111827; color: #f9fafb; }
+      main { max-width: 1120px; margin: 0 auto; padding: 32px 20px 48px; }
+      h1 { margin: 0 0 8px; font-size: 32px; }
+      .description { margin: 0 0 24px; color: #cbd5e1; line-height: 1.6; }
+      .tabs { display: flex; gap: 8px; margin: 0 0 22px; }
+      .tab-button { background: #334155; color: #e2e8f0; }
+      .tab-button.active { background: #38bdf8; color: #082f49; }
+      .tab-panel[hidden] { display: none; }
+      textarea, input { box-sizing: border-box; border: 1px solid #334155; border-radius: 12px; background: #020617; color: #e5e7eb; }
+      textarea { width: 100%; min-height: 260px; resize: vertical; padding: 16px; font: 15px/1.5 Consolas, "D2Coding", monospace; }
+      input { min-height: 42px; padding: 0 12px; }
+      .controls, .filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+      .controls { margin: 14px 0 18px; }
+      .filters { margin: 18px 0 12px; }
+      .filters input { flex: 1 1 220px; }
+      button, .button-link, .file-label { border: 0; border-radius: 999px; padding: 11px 18px; background: #38bdf8; color: #082f49; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-block; }
+      button.secondary, .button-link.secondary, .file-label { background: #334155; color: #e2e8f0; }
+      input[type="file"] { display: none; }
+      .advanced { margin: -4px 0 20px; color: #cbd5e1; }
+      .advanced summary { cursor: pointer; width: fit-content; color: #93c5fd; }
+      .advanced .controls { margin-bottom: 0; }
+      .panel { margin-top: 18px; border: 1px solid #334155; border-radius: 14px; overflow: hidden; background: #0f172a; }
+      .panel-header { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid #334155; }
+      .panel-title { font-weight: 800; }
+      .hint { color: #94a3b8; font-size: 13px; }
+      table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+      th, td { padding: 12px 16px; border-bottom: 1px solid #1f2937; text-align: right; white-space: nowrap; }
+      th:first-child, td:first-child { text-align: left; }
+      th { color: #cbd5e1; font-size: 13px; background: #111827; }
+      th.sortable { cursor: pointer; user-select: none; }
+      th.sortable:hover { color: #f9fafb; background: #1e293b; }
+      .sort-mark { display: inline-block; width: 12px; color: #38bdf8; font-size: 12px; margin-left: 4px; text-align: center; }
+      tbody tr:last-child td { border-bottom: 0; }
+      .negative { color: #fca5a5; }
+      .positive { color: #86efac; }
+      .warning { display: none; margin-top: 16px; border: 1px solid #f97316; border-radius: 14px; padding: 14px; color: #fed7aa; background: rgba(154, 52, 18, 0.22); white-space: pre-wrap; }
+      .warning.info { border-color: #38bdf8; color: #bae6fd; background: rgba(2, 132, 199, 0.16); }
+      .guide-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+      .guide-step { border: 1px solid #334155; border-radius: 16px; overflow: hidden; background: #0f172a; }
+      .guide-step-text { padding: 14px; }
+      .guide-step-title { margin: 0 0 6px; font-size: 17px; }
+      .guide-step-description { margin: 0; color: #cbd5e1; font-size: 14px; line-height: 1.5; }
+      .guide-step img { display: block; width: 100%; height: 220px; object-fit: contain; background: #020617; border-top: 1px solid #334155; }
+      .guide-note { margin-top: 14px; border: 1px solid #38bdf8; border-radius: 14px; padding: 14px; color: #bae6fd; background: rgba(2, 132, 199, 0.16); line-height: 1.6; }
+      .guide-final { margin-top: 14px; }
+      @media (max-width: 680px) { table { display: block; overflow-x: auto; } }
+      @media (max-width: 900px) { .guide-grid { grid-template-columns: 1fr; } .guide-step img { height: auto; max-height: 360px; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>착취 계산기</h1>
+      <nav class="tabs" aria-label="화면 전환">
+        <button class="tab-button active" type="button" data-tab="calculator">계산기</button>
+        <button class="tab-button" type="button" data-tab="guide">사용방법</button>
+      </nav>
+
+      <section class="tab-panel" id="calculatorPanel">
+        <p class="description">여러 플레이어가 들어있는 txt 내용을 그대로 붙여넣고 <strong>누적에 반영</strong>을 누르세요. 플레이어별 최종합을 계산하고, 이미 저장된 행은 중복 제외합니다.</p>
+        <textarea id="input" spellcheck="false" placeholder='예:
+"날짜"	"플레이어"	"목적"	"수량"
+"2026-05-31 05:55:36"	"Alice"	"입금"	"50"
+"2026-05-31 05:52:56"	"Bob"	"출금"	"-10"'></textarea>
+        <div class="controls">
+          <button id="saveLedger" type="button">누적에 반영</button>
+          <button class="secondary" id="clear" type="button">입력 비우기</button>
+        </div>
+        <details class="advanced">
+          <summary>백업/초기화</summary>
+          <div class="controls">
+            <button class="secondary" id="exportLedger" type="button">백업 다운로드</button>
+            <label class="file-label" for="importLedger">백업 불러오기</label>
+            <input id="importLedger" type="file" accept=".json,application/json" />
+            <button class="secondary" id="resetLedger" type="button">누적 초기화</button>
+          </div>
+        </details>
+        <div class="warning" id="warning"></div>
+        <section class="panel">
+          <div class="panel-header">
+            <div><div class="panel-title">플레이어별 누적 합계</div><div class="hint">표는 브라우저에 저장된 누적 기록 기준입니다.</div></div>
+            <div class="filters">
+              <input id="playerSearch" type="search" list="playerSuggestions" placeholder="플레이어 검색" autocomplete="off" />
+              <datalist id="playerSuggestions"></datalist>
+            </div>
+          </div>
+          <table>
+            <colgroup>
+              <col style="width: 34%" />
+              <col style="width: 22%" />
+              <col style="width: 22%" />
+              <col style="width: 22%" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th class="sortable" data-sort-key="player" id="playerHeader">플레이어 <span class="sort-mark"></span></th>
+                <th class="sortable" data-sort-key="total" id="totalHeader">최종합 <span class="sort-mark"></span></th>
+                <th>입금</th>
+                <th>출금</th>
+              </tr>
+            </thead>
+            <tbody id="playerTableBody"><tr><td colspan="4">아직 누적 기록이 없습니다.</td></tr></tbody>
+          </table>
+        </section>
+      </section>
+
+      <section class="tab-panel" id="guidePanel" hidden>
+        <p class="description">게임에서 길드 계좌 기록을 복사한 뒤, 계산기 화면에 붙여넣어 개인별 +/-를 확인합니다.</p>
+        <section class="guide-grid">
+          <article class="guide-step">
+            <div class="guide-step-text">
+              <h2 class="guide-step-title">1. 길드관리 탭</h2>
+              <p class="guide-step-description">길드 화면에서 <strong>길드관리</strong> 탭을 열고 <strong>길드 기록</strong> 버튼을 누릅니다.</p>
+            </div>
+            <a href="Images/1.png" target="_blank" rel="noopener"><img src="Images/1.png" alt="길드관리 탭에서 길드 기록 버튼 위치" /></a>
+          </article>
+          <article class="guide-step">
+            <div class="guide-step-text">
+              <h2 class="guide-step-title">2. 필터 설정</h2>
+              <p class="guide-step-description">항목은 <strong>착취한 에너지</strong>, 기간은 <strong>4주</strong>로 설정합니다.</p>
+            </div>
+            <a href="Images/2.png" target="_blank" rel="noopener"><img src="Images/2.png" alt="길드 계좌 기록에서 착취한 에너지와 4주 필터 선택" /></a>
+          </article>
+          <article class="guide-step">
+            <div class="guide-step-text">
+              <h2 class="guide-step-title">3. 복사</h2>
+              <p class="guide-step-description"><strong>클립보드로 복사</strong> 버튼을 눌러 기록을 복사합니다.</p>
+            </div>
+            <a href="Images/3.png" target="_blank" rel="noopener"><img src="Images/3.png" alt="길드 계좌 기록 클립보드로 복사 버튼 위치" /></a>
+          </article>
+        </section>
+        <article class="guide-step guide-final">
+          <div class="guide-step-text">
+            <h2 class="guide-step-title">4. 계산기에 붙여넣기</h2>
+            <p class="guide-step-description">계산기 탭으로 돌아가 복사한 내용을 붙여넣고 <strong>누적에 반영</strong>을 누릅니다. 이후 플레이어 검색창에서 이름을 선택하면 해당 플레이어의 +/-만 확인할 수 있습니다.</p>
+          </div>
+        </article>
+        <div class="guide-note">원본 기록은 최근 4주치만 제공될 수 있으므로, 주기적으로 <strong>누적에 반영</strong>을 눌러 기록을 저장하세요.</div>
+      </section>
+    </main>
+    <script src="calculator.js"></script>
+    <script>
+      const ledgerStorageKey = "exploit-calculator-ledger-v2";
+      const legacyStorageKey = "exploit-calculator-ledger-v1";
+      const lastPlayerCookieName = "exploit-calculator-last-player";
+      const lastPlayerStorageKey = "exploit-calculator-last-player";
+
+      const input = document.getElementById("input");
+      const warning = document.getElementById("warning");
+      const playerSearch = document.getElementById("playerSearch");
+      const playerSuggestions = document.getElementById("playerSuggestions");
+      const playerTableBody = document.getElementById("playerTableBody");
+      const sortableHeaders = document.querySelectorAll("th.sortable");
+      const tabButtons = document.querySelectorAll(".tab-button");
+      const calculatorPanel = document.getElementById("calculatorPanel");
+      const guidePanel = document.getElementById("guidePanel");
+
+      let statusMessage = "";
+      let sortState = { key: "total", direction: "asc" };
+
+      function readStorage(key) {
+        try {
+          return JSON.parse(localStorage.getItem(key) || "null");
+        } catch {
+          return null;
+        }
+      }
+
+      function loadLedger() {
+        const current = ExploitCalculator.importLedger(readStorage(ledgerStorageKey));
+        if (current.rows.length > 0 || current.summaries.length > 0) {
+          return current;
+        }
+
+        return ExploitCalculator.importLedger(readStorage(legacyStorageKey));
+      }
+
+      function saveLedger(ledger) {
+        localStorage.setItem(ledgerStorageKey, JSON.stringify(ExploitCalculator.exportBackup(ledger)));
+      }
+
+      function readCookie(name) {
+        const prefix = `${name}=`;
+        const cookie = document.cookie
+          .split("; ")
+          .find((item) => item.startsWith(prefix));
+
+        return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : "";
+      }
+
+      function writeCookie(name, value) {
+        document.cookie = `${name}=${encodeURIComponent(value)}; max-age=31536000; path=/; SameSite=Lax`;
+      }
+
+      function loadLastPlayerSearch() {
+        return readCookie(lastPlayerCookieName) || localStorage.getItem(lastPlayerStorageKey) || "";
+      }
+
+      function saveLastPlayerSearch(value) {
+        writeCookie(lastPlayerCookieName, value);
+        localStorage.setItem(lastPlayerStorageKey, value);
+      }
+
+      function numberClass(value) {
+        return value > 0 ? "positive" : value < 0 ? "negative" : "";
+      }
+
+      function renderPlayerSuggestions(players) {
+        playerSuggestions.innerHTML = players
+          .map((item) => `<option value="${item.player}"></option>`)
+          .join("");
+      }
+
+      function sortPlayersForTable(players) {
+        const direction = sortState.direction === "asc" ? 1 : -1;
+
+        return [...players].sort((a, b) => {
+          if (sortState.key === "player") {
+            return a.player.localeCompare(b.player, "ko-KR") * direction;
+          }
+
+          return ((a.total - b.total) || a.player.localeCompare(b.player, "ko-KR")) * direction;
+        });
+      }
+
+      function renderSortMarks() {
+        sortableHeaders.forEach((header) => {
+          const mark = header.querySelector(".sort-mark");
+          mark.textContent =
+            header.dataset.sortKey === sortState.key
+              ? sortState.direction === "asc"
+                ? "▲"
+                : "▼"
+              : "";
+        });
+      }
+
+      function renderPlayerTable(players) {
+        const keyword = playerSearch.value.trim().toLowerCase();
+        const filtered = sortPlayersForTable(players).filter((item) => item.player.toLowerCase().includes(keyword));
+
+        renderSortMarks();
+
+        if (filtered.length === 0) {
+          playerTableBody.innerHTML = '<tr><td colspan="4">' + "\uD45C\uC2DC\uD560 \uD50C\uB808\uC774\uC5B4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4." + "</td></tr>";
+          return;
+        }
+
+        playerTableBody.innerHTML = filtered
+          .map(
+            (item) => `
+              <tr>
+                <td>${item.player}</td>
+                <td class="${numberClass(item.total)}">${ExploitCalculator.formatNumber(item.total)}</td>
+                <td class="positive">${ExploitCalculator.formatNumber(item.depositTotal)}</td>
+                <td class="negative">${ExploitCalculator.formatNumber(item.withdrawTotal)}</td>
+              </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function showWarning(invalidLines, message) {
+        if (invalidLines.length > 0) {
+          warning.classList.remove("info");
+          warning.style.display = "block";
+          warning.textContent =
+            message + "\n" + invalidLines.map((item) => `${item.lineNumber}\uD589: ${item.text}`).join("\n");
+          return;
+        }
+
+        warning.style.display = "none";
+        warning.textContent = statusMessage;
+
+        if (statusMessage) {
+          warning.classList.add("info");
+          warning.style.display = "block";
+        } else {
+          warning.classList.remove("info");
+        }
+      }
+
+      function render(invalidLines = []) {
+        const currentResult = ExploitCalculator.calculate(input.value);
+        const ledgerResult = ExploitCalculator.summarizeLedger(loadLedger());
+
+        renderPlayerSuggestions(ledgerResult.players);
+        renderPlayerTable(ledgerResult.players);
+        showWarning(invalidLines.length > 0 ? invalidLines : currentResult.invalidLines, "\uC77D\uC9C0 \uBABB\uD55C \uC904\uC774 \uC788\uC2B5\uB2C8\uB2E4.");
+      }
+
+      document.getElementById("saveLedger").addEventListener("click", () => {
+        const merged = ExploitCalculator.mergeLedger(loadLedger(), input.value);
+        saveLedger(merged.ledger);
+        statusMessage = `\uBC18\uC601 \uC644\uB8CC: \uC0C8 \uD589 ${ExploitCalculator.formatNumber(merged.addedCount)}\uAC1C, \uC911\uBCF5 \uC81C\uC678 ${ExploitCalculator.formatNumber(merged.duplicateCount)}\uAC1C`;
+        render(merged.invalidLines);
+      });
+
+      document.getElementById("clear").addEventListener("click", () => {
+        input.value = "";
+        statusMessage = "";
+        render();
+        input.focus();
+      });
+
+      document.getElementById("exportLedger").addEventListener("click", () => {
+        const backup = ExploitCalculator.exportBackup(loadLedger());
+        const blob = new Blob([JSON.stringify(backup, null, 2) + "\n"], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+
+        anchor.href = url;
+        anchor.download = `\uCC29\uCDE8\uACC4\uC0B0\uAE30-\uB204\uC801\uAE30\uB85D-${new Date().toISOString().slice(0, 10)}.json`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+      });
+
+      document.getElementById("importLedger").addEventListener("change", async (event) => {
+        const file = event.target.files[0];
+        if (!file) {
+          return;
+        }
+
+        const ledger = ExploitCalculator.importLedger(JSON.parse(await file.text()));
+        saveLedger(ledger);
+        statusMessage = `\uBC31\uC5C5 ${ExploitCalculator.formatNumber(ExploitCalculator.summarizeLedger(ledger).rowCount)}\uD589\uC744 \uBD88\uB7EC\uC654\uC2B5\uB2C8\uB2E4.`;
+        render();
+      });
+
+      document.getElementById("resetLedger").addEventListener("click", () => {
+        if (!confirm("\uBE0C\uB77C\uC6B0\uC800\uC5D0 \uC800\uC7A5\uB41C \uB204\uC801 \uAE30\uB85D\uC744 \uC804\uBD80 \uC9C0\uC6B8\uAE4C\uC694?")) {
+          return;
+        }
+
+        saveLedger([]);
+        statusMessage = "\uB204\uC801 \uAE30\uB85D\uC744 \uCD08\uAE30\uD654\uD588\uC2B5\uB2C8\uB2E4.";
+        render();
+      });
+
+      input.addEventListener("keydown", (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+          document.getElementById("saveLedger").click();
+        }
+      });
+
+      input.addEventListener("input", () => {
+        statusMessage = "";
+        render();
+      });
+
+      playerSearch.addEventListener("input", () => {
+        saveLastPlayerSearch(playerSearch.value.trim());
+        render();
+      });
+
+      sortableHeaders.forEach((header) => {
+        header.addEventListener("click", () => {
+          const nextKey = header.dataset.sortKey;
+          sortState = {
+            key: nextKey,
+            direction:
+              sortState.key === nextKey && sortState.direction === "asc"
+                ? "desc"
+                : "asc",
+          };
+          render();
+        });
+      });
+
+      tabButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const isGuide = button.dataset.tab === "guide";
+
+          calculatorPanel.hidden = isGuide;
+          guidePanel.hidden = !isGuide;
+          tabButtons.forEach((item) => item.classList.toggle("active", item === button));
+        });
+      });
+
+      playerSearch.value = loadLastPlayerSearch();
+      render();
+    </script>
+  </body>
+</html>
