@@ -11,6 +11,16 @@
       main { max-width: 1120px; margin: 0 auto; padding: 32px 20px 48px; }
       h1 { margin: 0 0 8px; font-size: 32px; }
       .description { margin: 0 0 24px; color: #cbd5e1; line-height: 1.6; }
+      .page-header { margin-bottom: 24px; }
+      .page-heading .description { margin-bottom: 0; }
+      .page-footer { margin-top: 28px; padding-top: 18px; border-top: 1px solid #334155; color: #94a3b8; }
+      .footer-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+      .footer-actions .button-link { padding: 9px 13px; font-size: 13px; line-height: 1.2; }
+      .notice, .support-note { margin: 10px 0 0; color: #93c5fd; font-size: 13px; line-height: 1.5; }
+      .support-note { margin: 0 0 14px; color: #cbd5e1; }
+      .license { margin: 0; font-size: 12px; line-height: 1.5; }
+      .license a { color: #93c5fd; text-decoration: none; }
+      .license a:hover, .license a:focus-visible { text-decoration: underline; }
       textarea, input { box-sizing: border-box; border: 1px solid #334155; border-radius: 12px; background: #020617; color: #e5e7eb; }
       textarea { width: 100%; min-height: 260px; resize: vertical; padding: 16px; font: 15px/1.5 Consolas, "D2Coding", monospace; }
       input { min-height: 42px; padding: 0 12px; }
@@ -75,8 +85,12 @@
   </head>
   <body>
     <main>
-      <h1>착취 계산기</h1>
-      <p class="description">여러 플레이어가 들어있는 txt 내용을 그대로 붙여넣고 <strong>누적에 반영</strong>을 누르세요. 플레이어별 최종합을 계산하고, 플레이어별 최근 기록일 이전 행은 중복 제외합니다.</p>
+      <header class="page-header">
+        <div class="page-heading">
+          <h1>착취 계산기</h1>
+          <p class="description">여러 플레이어가 들어있는 txt 내용을 그대로 붙여넣고 <strong>누적에 반영</strong>을 누르세요. 플레이어별 최종합을 계산하고, 플레이어별 최근 기록일 이전 행은 중복 제외합니다.</p>
+        </div>
+      </header>
 
       <details class="guide-toggle" aria-label="사용방법">
         <summary>
@@ -123,6 +137,7 @@
 "날짜"	"플레이어"	"목적"	"수량"
 "2026-05-31 05:55:36"	"Alice"	"입금"	"50"
 "2026-05-31 05:52:56"	"Bob"	"출금"	"-10"'></textarea>
+        <p class="notice">입력한 기록은 서버로 전송되지 않고 이 브라우저에만 저장됩니다.</p>
         <div class="controls primary-controls">
           <button id="saveLedger" type="button">누적에 반영</button>
         </div>
@@ -138,7 +153,10 @@
         <div class="warning" id="warning"></div>
         <section class="panel">
           <div class="panel-header">
-            <div><div class="panel-title">플레이어별 누적 합계</div><div class="hint">표는 브라우저에 저장된 누적 기록 기준입니다.</div></div>
+            <div>
+              <div class="panel-title">플레이어별 누적 합계</div>
+              <div class="hint">표는 브라우저에 저장된 누적 기록 기준입니다.</div>
+            </div>
             <div class="filters">
               <input id="playerSearch" type="search" list="playerSuggestions" placeholder="플레이어 검색" autocomplete="off" />
               <datalist id="playerSuggestions"></datalist>
@@ -167,6 +185,17 @@
           </table>
         </section>
       </section>
+      <footer class="page-footer">
+        <p class="support-note">버그 제보 시 가능하면 백업 파일 또는 문제가 생긴 txt 예시를 함께 첨부해주세요.</p>
+        <nav class="footer-actions" aria-label="제보 및 요청">
+          <a class="button-link secondary" id="bugReportLink" href="https://github.com/jjw1270/Albion_Siphoned_Energy_Calculator/issues/new?title=%5B%EB%B2%84%EA%B7%B8%5D%20" target="_blank" rel="noopener noreferrer">버그 제보</a>
+          <a class="button-link secondary" id="featureRequestLink" href="https://github.com/jjw1270/Albion_Siphoned_Energy_Calculator/issues/new?title=%5B%EA%B8%B0%EB%8A%A5%20%EC%9A%94%EC%B2%AD%5D%20" target="_blank" rel="noopener noreferrer">기능 요청</a>
+        </nav>
+        <p class="license">
+          MIT License · Copyright © 2026 Yunje Jang ·
+          <a href="LICENSE" target="_blank" rel="noopener noreferrer">라이선스 보기</a>
+        </p>
+      </footer>
     </main>
     <div class="image-modal" id="imageModal" role="dialog" aria-modal="true" aria-label="확대 이미지" hidden>
       <button type="button" id="closeImageModal" aria-label="확대 이미지 닫기">닫기</button>
@@ -178,6 +207,24 @@
       const legacyStorageKey = "exploit-calculator-ledger-v1";
       const lastPlayerCookieName = "exploit-calculator-last-player";
       const lastPlayerStorageKey = "exploit-calculator-last-player";
+      const issueBaseUrl = "https://github.com/jjw1270/Albion_Siphoned_Energy_Calculator/issues/new";
+      const bugReportTemplate = [
+        "## 문제 내용",
+        "",
+        "",
+        "## 재현 방법",
+        "어떻게 하면 문제가 다시 생기는지 간단히 적어주세요.",
+        "",
+        "## 스크린샷 또는 txt 예시",
+        "가능하면 첨부해주세요. 닉네임은 가려도 됩니다.",
+      ].join("\n");
+      const featureRequestTemplate = [
+        "## 원하는 기능",
+        "",
+        "",
+        "## 있으면 좋은 이유",
+        "간단히 적어주세요.",
+      ].join("\n");
       const playerTableColumnCount = 6;
 
       const input = document.getElementById("input");
@@ -185,6 +232,8 @@
       const playerSearch = document.getElementById("playerSearch");
       const playerSuggestions = document.getElementById("playerSuggestions");
       const playerTableBody = document.getElementById("playerTableBody");
+      const bugReportLink = document.getElementById("bugReportLink");
+      const featureRequestLink = document.getElementById("featureRequestLink");
       const sortableHeaders = document.querySelectorAll("th.sortable");
       const zoomableImages = document.querySelectorAll("img.zoomable");
       const imageModal = document.getElementById("imageModal");
@@ -192,7 +241,17 @@
       const closeImageModal = document.getElementById("closeImageModal");
 
       let statusMessage = "";
+      let statusType = "info";
       let sortState = { key: "total", direction: "asc" };
+
+      function buildIssueUrl(title, body) {
+        return `${issueBaseUrl}?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+      }
+
+      function setupIssueLinks() {
+        bugReportLink.href = buildIssueUrl("[버그] ", bugReportTemplate);
+        featureRequestLink.href = buildIssueUrl("[기능 요청] ", featureRequestTemplate);
+      }
 
       function readStorage(key) {
         try {
@@ -213,6 +272,14 @@
 
       function saveLedger(ledger) {
         localStorage.setItem(ledgerStorageKey, JSON.stringify(ExploitCalculator.exportBackup(ledger)));
+      }
+
+      function parseBackupFileContent(text) {
+        const parsed = JSON.parse(text);
+        if (!parsed || (!Array.isArray(parsed) && !parsed.ledger && !Array.isArray(parsed.rows))) {
+          throw new Error("Unsupported backup format");
+        }
+        return ExploitCalculator.importLedger(parsed);
       }
 
       function readCookie(name) {
@@ -348,21 +415,22 @@
         warning.textContent = [statusMessage, compatibilityMessage].filter(Boolean).join("\n");
 
         if (warning.textContent) {
-          warning.classList.toggle("info", !compatibilityMessage);
+          warning.classList.toggle("info", !compatibilityMessage && statusType !== "error");
           warning.style.display = "block";
         } else {
           warning.classList.remove("info");
         }
       }
 
-      function render(invalidLines = []) {
+      function render(invalidLines = null) {
         const currentResult = ExploitCalculator.calculate(input.value);
         const ledgerResult = ExploitCalculator.summarizeLedger(loadLedger());
+        const warningLines = invalidLines === null ? currentResult.invalidLines : invalidLines;
 
         renderPlayerSuggestions(ledgerResult.players);
         renderPlayerTable(ledgerResult.players);
         showWarning(
-          invalidLines.length > 0 ? invalidLines : currentResult.invalidLines,
+          warningLines,
           "\uC77D\uC9C0 \uBABB\uD55C \uC904\uC774 \uC788\uC2B5\uB2C8\uB2E4.",
           hasMissingSummaryDates(ledgerResult.players),
         );
@@ -372,6 +440,7 @@
         const merged = ExploitCalculator.mergeLedger(loadLedger(), input.value);
         saveLedger(merged.ledger);
         input.value = "";
+        statusType = "info";
         statusMessage = `\uBC18\uC601 \uC644\uB8CC: \uC0C8 \uD589 ${ExploitCalculator.formatNumber(merged.addedCount)}\uAC1C, \uC911\uBCF5 \uC81C\uC678 ${ExploitCalculator.formatNumber(merged.duplicateCount)}\uAC1C`;
         render(merged.invalidLines);
       });
@@ -394,10 +463,19 @@
           return;
         }
 
-        const ledger = ExploitCalculator.importLedger(JSON.parse(await file.text()));
-        saveLedger(ledger);
-        statusMessage = `\uBC31\uC5C5 ${ExploitCalculator.formatNumber(ExploitCalculator.summarizeLedger(ledger).rowCount)}\uD589\uC744 \uBD88\uB7EC\uC654\uC2B5\uB2C8\uB2E4.`;
-        render();
+        try {
+          const ledger = parseBackupFileContent(await file.text());
+          saveLedger(ledger);
+          statusType = "info";
+          statusMessage = `\uBC31\uC5C5 ${ExploitCalculator.formatNumber(ExploitCalculator.summarizeLedger(ledger).rowCount)}\uD589\uC744 \uBD88\uB7EC\uC654\uC2B5\uB2C8\uB2E4.`;
+          render();
+        } catch {
+          statusType = "error";
+          statusMessage = "백업 파일을 읽지 못했습니다. 착취 계산기에서 다운로드한 JSON 백업 파일인지 확인해주세요.";
+          render();
+        } finally {
+          event.target.value = "";
+        }
       });
 
       document.getElementById("resetLedger").addEventListener("click", () => {
@@ -406,6 +484,7 @@
         }
 
         saveLedger([]);
+        statusType = "info";
         statusMessage = "\uB204\uC801 \uAE30\uB85D\uC744 \uCD08\uAE30\uD654\uD588\uC2B5\uB2C8\uB2E4.";
         render();
       });
@@ -417,6 +496,7 @@
       });
 
       input.addEventListener("input", () => {
+        statusType = "info";
         statusMessage = "";
         render();
       });
@@ -456,6 +536,7 @@
         }
       });
 
+      setupIssueLinks();
       playerSearch.value = loadLastPlayerSearch();
       render();
     </script>
