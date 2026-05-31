@@ -26,8 +26,8 @@
       button.secondary, .button-link.secondary, .file-label { background: #334155; color: #e2e8f0; }
       input[type="file"] { display: none; }
       .advanced { margin: -4px 0 20px; color: #cbd5e1; }
-      .advanced summary { cursor: pointer; width: fit-content; color: #93c5fd; }
-      .advanced .controls { margin-bottom: 0; }
+      .advanced-title { margin: 0 0 8px; color: #93c5fd; font-size: 14px; font-weight: 700; }
+      .advanced .controls { margin: 0; }
       .advanced button, .advanced .file-label { font: inherit; font-size: 14px; font-weight: 700; line-height: 1.2; }
       .panel { margin-top: 18px; border: 1px solid #334155; border-radius: 14px; overflow: hidden; background: #0f172a; }
       .panel-header { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid #334155; }
@@ -53,8 +53,13 @@
       .guide-step-title { margin: 0 0 6px; font-size: 17px; }
       .guide-step-description { margin: 0; color: #cbd5e1; font-size: 14px; line-height: 1.5; }
       .guide-step img { display: block; width: 100%; height: 220px; object-fit: contain; background: #020617; border-top: 1px solid #334155; }
+      .guide-step img.zoomable { cursor: zoom-in; }
       .guide-note { margin-top: 14px; border: 1px solid #38bdf8; border-radius: 14px; padding: 14px; color: #bae6fd; background: rgba(2, 132, 199, 0.16); line-height: 1.6; }
       .guide-final { margin-top: 14px; }
+      .image-modal { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 24px; background: rgba(2, 6, 23, 0.86); }
+      .image-modal[hidden] { display: none; }
+      .image-modal img { max-width: min(1120px, 96vw); max-height: 86vh; border: 1px solid #334155; border-radius: 14px; background: #020617; object-fit: contain; }
+      .image-modal button { position: fixed; top: 18px; right: 18px; background: #e2e8f0; color: #0f172a; }
       @media (max-width: 680px) { table { display: block; overflow-x: auto; } }
       @media (max-width: 900px) { .guide-grid { grid-template-columns: 1fr; } .guide-step img { height: auto; max-height: 360px; } }
     </style>
@@ -77,15 +82,15 @@
           <button id="saveLedger" type="button">누적에 반영</button>
           <button class="secondary" id="clear" type="button">입력 비우기</button>
         </div>
-        <details class="advanced">
-          <summary>백업/초기화</summary>
+        <section class="advanced" aria-label="백업/초기화">
+          <div class="advanced-title">백업/초기화</div>
           <div class="controls">
             <button class="secondary" id="exportLedger" type="button">백업 다운로드</button>
             <label class="file-label" for="importLedger">백업 불러오기</label>
             <input id="importLedger" type="file" accept=".json,application/json" />
             <button class="secondary" id="resetLedger" type="button">누적 초기화</button>
           </div>
-        </details>
+        </section>
         <div class="warning" id="warning"></div>
         <section class="panel">
           <div class="panel-header">
@@ -127,21 +132,21 @@
               <h2 class="guide-step-title">1. 길드관리 탭</h2>
               <p class="guide-step-description">길드 화면에서 <strong>길드관리</strong> 탭을 열고 <strong>길드 기록</strong> 버튼을 누릅니다.</p>
             </div>
-            <a href="Images/1.png" target="_blank" rel="noopener"><img src="Images/1.png" alt="길드관리 탭에서 길드 기록 버튼 위치" /></a>
+            <img class="zoomable" src="Images/1.png" alt="길드관리 탭에서 길드 기록 버튼 위치" />
           </article>
           <article class="guide-step">
             <div class="guide-step-text">
               <h2 class="guide-step-title">2. 필터 설정</h2>
               <p class="guide-step-description">처음 누적할 때는 기간을 <strong>4주</strong>로 설정합니다. 이후부터는 중복 제외가 되므로 <strong>24시간</strong>으로 복사해도 됩니다.</p>
             </div>
-            <a href="Images/2.png" target="_blank" rel="noopener"><img src="Images/2.png" alt="길드 계좌 기록에서 착취한 에너지와 기간 필터 선택" /></a>
+            <img class="zoomable" src="Images/2.png" alt="길드 계좌 기록에서 착취한 에너지와 기간 필터 선택" />
           </article>
           <article class="guide-step">
             <div class="guide-step-text">
               <h2 class="guide-step-title">3. 복사</h2>
               <p class="guide-step-description"><strong>클립보드로 복사</strong> 버튼을 눌러 기록을 복사합니다.</p>
             </div>
-            <a href="Images/3.png" target="_blank" rel="noopener"><img src="Images/3.png" alt="길드 계좌 기록 클립보드로 복사 버튼 위치" /></a>
+            <img class="zoomable" src="Images/3.png" alt="길드 계좌 기록 클립보드로 복사 버튼 위치" />
           </article>
         </section>
         <article class="guide-step guide-final">
@@ -153,6 +158,10 @@
         <div class="guide-note">처음에는 <strong>4주</strong> 기록을 한 번 누적하고, 이후에는 매일 또는 필요할 때 <strong>24시간</strong> 기록만 복사해 <strong>누적에 반영</strong>하세요.</div>
       </section>
     </main>
+    <div class="image-modal" id="imageModal" role="dialog" aria-modal="true" aria-label="확대 이미지" hidden>
+      <button type="button" id="closeImageModal" aria-label="확대 이미지 닫기">닫기</button>
+      <img id="modalImage" alt="" />
+    </div>
     <script src="calculator.js"></script>
     <script>
       const ledgerStorageKey = "exploit-calculator-ledger-v2";
@@ -168,8 +177,12 @@
       const playerTableBody = document.getElementById("playerTableBody");
       const sortableHeaders = document.querySelectorAll("th.sortable");
       const tabButtons = document.querySelectorAll(".tab-button");
+      const zoomableImages = document.querySelectorAll("img.zoomable");
       const calculatorPanel = document.getElementById("calculatorPanel");
       const guidePanel = document.getElementById("guidePanel");
+      const imageModal = document.getElementById("imageModal");
+      const modalImage = document.getElementById("modalImage");
+      const closeImageModal = document.getElementById("closeImageModal");
 
       let statusMessage = "";
       let sortState = { key: "total", direction: "asc" };
@@ -215,6 +228,20 @@
       function saveLastPlayerSearch(value) {
         writeCookie(lastPlayerCookieName, value);
         localStorage.setItem(lastPlayerStorageKey, value);
+      }
+
+      function openImageModal(image) {
+        modalImage.src = image.src;
+        modalImage.alt = image.alt;
+        imageModal.hidden = false;
+        closeImageModal.focus();
+      }
+
+      function hideImageModal() {
+        if (imageModal.hidden) return;
+        imageModal.hidden = true;
+        modalImage.removeAttribute("src");
+        modalImage.alt = "";
       }
 
       function numberClass(value) {
@@ -420,6 +447,22 @@
           guidePanel.hidden = !isGuide;
           tabButtons.forEach((item) => item.classList.toggle("active", item === button));
         });
+      });
+
+      zoomableImages.forEach((image) => {
+        image.addEventListener("click", () => openImageModal(image));
+      });
+
+      closeImageModal.addEventListener("click", hideImageModal);
+      imageModal.addEventListener("click", (event) => {
+        if (event.target === imageModal) {
+          hideImageModal();
+        }
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !imageModal.hidden) {
+          hideImageModal();
+        }
       });
 
       playerSearch.value = loadLastPlayerSearch();
